@@ -50,6 +50,7 @@ traces to the read-only `volt` assessment documents named in `docs/sources.md`.
 | `ud.dtc.codec` | `dtc.encode()` and `dtc.decode()` round-trip a display code | SAE J2012 / ISO 15031-6 (unverified) | `[ok]` | `tests/test_dtc.py::test_encode_decode_round_trips_a_code` |
 | `ud.dtc.category` | `dtc.category_of()` reads the category from the leading letter | assessment | `[ok]` | `tests/test_dtc.py::test_category_comes_from_the_letter` |
 | `ud.dtc.reference` | `dtc.catalog()` carries the representative subset and the per-prefix counts | assessment | `[ok]` | `tests/test_dtc.py::test_the_reference_subset_and_counts` |
+| `ud.dtc.status` | `dtc.decode_status()` names the status bits set in a statusOfDTC / availability-mask byte | ISO 14229-1:2013 D.2 | `[ok]` | `tests/test_dtc.py::test_status_byte_decodes_against_iso_examples` |
 
 ### RoutineControl and IOControl
 
@@ -92,5 +93,4 @@ traces to the read-only `volt` assessment documents named in `docs/sources.md`.
 | `ud.dtc.full` | The full 841-code DTC table joined to 17OBDG01 | assessment | `[no]` | that dataset is the sibling `gmdtcdb` |
 | `ud.transport.isotp` | ISO-TP segmentation and reassembly under the PDU | ISO 15765-2:2016 | `[no]` | the transport codec is the sibling `isotpkit` |
 | `ud.m6.parse` | Parse the GM Mode $06 PDFs into monitor/test-ID records | SAE J1979 | `[no]` | the parser is the sibling `mode06kit` |
-| `ud.dtc.status` | Decode the ISO 14229-1 DTC status-availability mask bits | ISO 14229-1:2013 D.2 | `[ ]` | not built |
 | `ud.did.semantics` | Field semantics of the GM-enhanced 41xx/42xx DIDs | GM-proprietary | `[ ]` | needs an owner-authorised vehicle; catalog only for now |

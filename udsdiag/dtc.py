@@ -92,6 +92,97 @@ def decode(raw: bytes) -> str:
     return f"{letter}{d1:X}{d2:X}{byte1:02X}"
 
 
+# --- DTC status byte (statusOfDTC / DTCStatusAvailabilityMask) -------------------------------
+#
+# The statusOfDTC byte reported by ReadDTCInformation (0x19) and the DTCStatusAvailabilityMask
+# the server advertises share one 8-bit layout, bit 0 first. The bit names, mnemonics and
+# availability (M/U) are ISO 14229-1:2013, Annex D.2 (Tables D.3-D.11, DTC status bit
+# definitions), confirmed against the 0x19 message-flow examples in 11.3.5 (Tables 287-289),
+# both read through the primarysource iso_* tools; see docs/iso-map.md.
+
+
+@dataclass(frozen=True, slots=True)
+class StatusBit:
+    """One bit of the 8-bit DTC status byte, with its meaning when set to 1."""
+
+    bit: int
+    name: str
+    mnemonic: str
+    availability: str  # "M" mandatory or "U" user-optional (ISO 14229-1:2013 Annex D.2)
+    meaning: str
+
+
+# Ordered bit 0 -> bit 7 (ISO 14229-1:2013 Annex D.2, Tables D.3-D.11).
+STATUS_BITS: tuple[StatusBit, ...] = (
+    StatusBit(0, "testFailed", "TF", "M", "the most recently performed test failed"),
+    StatusBit(
+        1,
+        "testFailedThisOperationCycle",
+        "TFTOC",
+        "U",
+        "a test reported a testFailed result at any time during the current operation cycle",
+    ),
+    StatusBit(
+        2,
+        "pendingDTC",
+        "PDTC",
+        "U",
+        "the DTC failed on the current or a previous operation cycle but is not yet confirmed",
+    ),
+    StatusBit(
+        3,
+        "confirmedDTC",
+        "CDTC",
+        "M",
+        "a malfunction was detected enough times to warrant the DTC being stored",
+    ),
+    StatusBit(
+        4,
+        "testNotCompletedSinceLastClear",
+        "TNCSLC",
+        "U",
+        "a test has not completed since the last ClearDiagnosticInformation",
+    ),
+    StatusBit(
+        5,
+        "testFailedSinceLastClear",
+        "TFSLC",
+        "U",
+        "a test failed at least once since the last ClearDiagnosticInformation",
+    ),
+    StatusBit(
+        6,
+        "testNotCompletedThisOperationCycle",
+        "TNCTOC",
+        "U",
+        "a test has not completed this operation cycle",
+    ),
+    StatusBit(
+        7,
+        "warningIndicatorRequested",
+        "WIR",
+        "U",
+        "the server is requesting the warning indicator to be active",
+    ),
+)
+
+
+def status_bits() -> tuple[StatusBit, ...]:
+    """The eight DTC status bits in bit order (bit 0 first)."""
+    return STATUS_BITS
+
+
+def decode_status(value: int) -> tuple[StatusBit, ...]:
+    """The status bits set in an 8-bit DTC status byte, bit 0 first.
+
+    Applies to both a ``statusOfDTC`` byte and a ``DTCStatusAvailabilityMask``: they share the
+    Annex D.2 layout, so the mask's result names the status bits the server supports.
+    """
+    if not 0 <= value <= 0xFF:
+        raise ValueError(f"a DTC status byte is one octet (0x00-0xFF), got {value:#x}")
+    return tuple(bit for bit in STATUS_BITS if value & (1 << bit.bit))
+
+
 # Representative cross-reference subset (docs/sources.md). in_17obdg01 marks codes GM's
 # 17OBDG01 Hybrid Diagnostics (Volt, OBD Group 1A) carries in its powertrain cert set.
 _CATALOG: tuple[Dtc, ...] = (

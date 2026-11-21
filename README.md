@@ -12,6 +12,7 @@ python -m udsdiag services          # the diagnostic service catalog
 python -m udsdiag nrc [31]           # negative response codes, or one by hex value
 python -m udsdiag did                # the Voltage 2.3.0 DID catalog
 python -m udsdiag dtc [P0A7F]        # DTC reference entries, or one by code
+python -m udsdiag status 24          # decode a DTC status byte (statusOfDTC / availability mask)
 python -m udsdiag routines           # the RoutineControl catalog
 python -m udsdiag iocontrol          # the IOControl signal groups
 python -m udsdiag security           # the SecurityAccess mechanisms
@@ -29,8 +30,9 @@ python -m udsdiag gmlan 241          # GMLAN response/filter IDs for a request I
   response, recognise `0x78` response-pending. Works on the reassembled application PDU; the
   ISO-TP transport under it is the sibling `isotpkit`.
 - `did` — the 115-DID ReadDataByIdentifier catalog a Volt app references, classified by range.
-- `dtc` — the DTC display/on-wire model and a representative reference subset (the full
-  841-code database is the sibling `gmdtcdb`).
+- `dtc` — the DTC display/on-wire model, the ISO 14229-1 Annex D.2 status-byte decoder
+  (`decode_status`), and a representative reference subset (the full 841-code database is the
+  sibling `gmdtcdb`).
 - `routine` / `iocontrol` — RoutineControl (`0x31`) and IOControl (`0x2F`/GM `$AE`): request
   builders plus the routine and signal catalogs resolved from a GM head unit.
 - `security` — the SecurityAccess exchange model and two mechanism descriptors (classic GM

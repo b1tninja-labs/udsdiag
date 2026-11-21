@@ -54,6 +54,19 @@ def _cmd_dtc(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_status(args: argparse.Namespace) -> int:
+    value = int(args.value, 16)
+    if not 0 <= value <= 0xFF:
+        print(f"a DTC status byte is one octet (0x00-0xFF), got {value:#x}")
+        return 2
+    print(f"status {value:#04x}  ({value:08b})")
+    for bit in dtc.decode_status(value):
+        print(f"  bit {bit.bit}  {bit.mnemonic:<6}  {bit.name}: {bit.meaning}")
+    if value == 0:
+        print("  (no status bits set)")
+    return 0
+
+
 def _cmd_routines(_: argparse.Namespace) -> int:
     for entry in routine.catalog():
         print(f"31 .. {entry.hex}  [{entry.risk}]  {entry.name}: {entry.effect}")
@@ -128,6 +141,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_dtc = sub.add_parser("dtc", help="list or look up DTC reference entries")
     p_dtc.add_argument("code", nargs="?", help="a DTC display code, e.g. P0A7F")
     p_dtc.set_defaults(func=_cmd_dtc)
+
+    p_status = sub.add_parser("status", help="decode a DTC status byte (statusOfDTC / availability mask)")
+    p_status.add_argument("value", help="a hex status byte, e.g. 24")
+    p_status.set_defaults(func=_cmd_status)
 
     sub.add_parser("routines", help="list the RoutineControl catalog").set_defaults(func=_cmd_routines)
     sub.add_parser("iocontrol", help="list the IOControl signal groups").set_defaults(func=_cmd_iocontrol)

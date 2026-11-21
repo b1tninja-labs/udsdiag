@@ -28,6 +28,14 @@ def test_dtc_lookup(capsys):
     assert "Hybrid/EV Battery Pack" in out
 
 
+def test_status_command_decodes_a_status_byte(capsys):
+    assert cli.main(["status", "24"]) == 0
+    out = capsys.readouterr().out
+    assert "pendingDTC" in out
+    assert "testFailedSinceLastClear" in out
+    assert cli.main(["status", "FFF"]) == 2
+
+
 def test_no_command_errors():
     with pytest.raises(SystemExit):
         cli.main([])

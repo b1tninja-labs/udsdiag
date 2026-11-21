@@ -14,6 +14,7 @@ and are therefore marked unverified in the code.
 | RoutineControl sub-functions: 0x01 startRoutine (M), 0x02 stopRoutine (U), 0x03 requestRoutineResults | `routine.py` | ISO 14229-1:2013 | 13.2; request example tables confirm the `0x31 / 0x01-0x03` bytes |
 | SecurityAccess pairing: requestSeed odd ↔ sendKey = requestSeed + 1; NRC 0x35 invalidKey | `security.py` | ISO 14229-1:2013 | 9.4.2; "requestSeed = 0x01 … sendKey = 0x02" |
 | requestOutOfRange 0x31, securityAccessDenied 0x33, invalidKey 0x35 definitions | `nrc.py` | ISO 14229-1:2013 | Table A.1 (read in full) |
+| DTC status byte: bit 0 testFailed … bit 7 warningIndicatorRequested, with M/U availability | `dtc.py` (`STATUS_BITS`, `decode_status`) | ISO 14229-1:2013 | Annex D.2, Tables D.3–D.11 (DTC status bit definitions); layout confirmed against the 0x19 examples in 11.3.5 (Tables 287–289, statusOfDTC 0x24 / 0x2F) |
 | ISO-TP carries multi-frame UDS PDUs (segmentation out of scope here) | `message.py` docstring | ISO 15765-2:2016 | referenced; the codec is the sibling `isotpkit` |
 | Mode $06 / Mode $09 are the generic OBD-II services | `mode06.py` | SAE J1979 / ISO 15031-5 | named; GM's own PDFs are the sibling `mode06kit`'s source |
 
