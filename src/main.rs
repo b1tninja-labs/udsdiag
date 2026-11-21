@@ -1,11 +1,11 @@
-//! The `udsdiag` command line: a read-only reference over the catalogs.
+//! The `udskit` command line: a read-only reference over the catalogs.
 //!
 //! Every sub-command prints from the in-crate catalogs or decodes a hex PDU you paste. Nothing
 //! here opens a bus, sends a frame, or derives a key.
 
 use std::process::ExitCode;
 
-use udsdiag::{did, dtc, gmlan, iocontrol, message, mode06, nrc, routine, security, services};
+use udskit::{did, dtc, gmlan, iocontrol, message, mode06, nrc, routine, security, services};
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -34,7 +34,7 @@ fn main() -> ExitCode {
     ExitCode::from(code)
 }
 
-const USAGE: &str = "usage: udsdiag <services|nrc|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
+const USAGE: &str = "usage: udskit <services|nrc|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
 
 fn parse_u8_hex(s: &str) -> Option<u8> {
     u8::from_str_radix(s.trim_start_matches("0x").trim_start_matches("0X"), 16).ok()

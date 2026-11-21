@@ -1,4 +1,4 @@
-# udsdiag
+# udskit
 
 An offline model of the UDS (ISO 14229-1:2013) and GM GMLAN diagnostic services, ported to Rust:
 the service and negative-response-code catalogs, a request/response PDU codec, and the DID, DTC,

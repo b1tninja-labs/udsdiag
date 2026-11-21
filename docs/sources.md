@@ -1,6 +1,6 @@
 # Sources
 
-`udsdiag` is a model of the UDS (ISO 14229-1) and GM GMLAN diagnostic services. Two kinds of
+`udskit` is a model of the UDS (ISO 14229-1) and GM GMLAN diagnostic services. Two kinds of
 source feed it: the normative standards (read through `primarysource`; mapped in
 [`iso-map.md`](iso-map.md)) and the catalogs recovered in an authorized assessment of a GM
 vehicle the owner holds. This file records the provenance of the catalog data. Nothing here

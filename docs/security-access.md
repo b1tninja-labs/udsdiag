@@ -1,6 +1,6 @@
 # SecurityAccess: the two mechanisms, and the scope boundary
 
-SecurityAccess (`0x27`) is the UDS service that unlocks protected functions. `udsdiag` models
+SecurityAccess (`0x27`) is the UDS service that unlocks protected functions. `udskit` models
 the **exchange shape** and names the **two mechanisms** the GM assessment distinguished. It
 carries no key material, no seed→key algorithm, and no key-derivation method, and it will not
 compute a key. That boundary is deliberate and matches the assessment's own
@@ -20,7 +20,7 @@ compute a key. That boundary is deliberate and matches the assessment's own
 
 Classic GM modules return a short seed and expect a key computed from it by a per-module
 secret algorithm held by GM. The Voltage app references `0x27` sub-functions `2701` and `2796`
-(requestSeed only; the appendix captured no seed, key, or algorithm). `udsdiag` records this
+(requestSeed only; the appendix captured no seed, key, or algorithm). `udskit` records this
 as the `classic-gm-seed-key` descriptor — family `seed-key` — and nothing more.
 
 ## Mechanism 2 — the GMG3 head unit's ADIT ALD
@@ -41,6 +41,6 @@ On the GM GMG3 infotainment head unit, SecurityAccess `0x27` is a thin front-end
   out of scope. The challenge is time-bounded by a per-request glib timer
   (`CHALLENGE_TIMEOUT`), not by the timestamp inside the challenge.
 
-`udsdiag` records this as the `adit-ald` descriptor — family `challenge-response`. The full
+`udskit` records this as the `adit-ald` descriptor — family `challenge-response`. The full
 decompiled mechanism is in `volt/docs/FINDINGS.md`; this package summarizes it, it does not
 reproduce or exercise it.

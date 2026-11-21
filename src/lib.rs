@@ -1,4 +1,4 @@
-//! `udsdiag`: an offline model of the UDS (ISO 14229-1:2013) and GM GMLAN diagnostic services.
+//! `udskit`: an offline model of the UDS (ISO 14229-1:2013) and GM GMLAN diagnostic services.
 //!
 //! The crate carries the service and negative-response-code catalogs, a request/response PDU
 //! codec, and the DID, DTC, Mode $06, RoutineControl, IOControl and SecurityAccess reference

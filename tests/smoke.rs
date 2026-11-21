@@ -1,6 +1,6 @@
 //! Integration tests use only the public API, as a downstream user would.
 
-use udsdiag::{dtc, message, security, services};
+use udskit::{dtc, message, security, services};
 
 #[test]
 fn a_read_did_round_trips_through_the_codec() {

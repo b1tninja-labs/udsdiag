@@ -1,6 +1,6 @@
 # Instructions for coding agents
 
-`udsdiag` is an offline model of the UDS (ISO 14229-1) and GM GMLAN diagnostic services, written in
+`udskit` is an offline model of the UDS (ISO 14229-1) and GM GMLAN diagnostic services, written in
 Rust: the service and NRC catalogs, a request/response codec, and the DID, DTC, Mode $06,
 RoutineControl, IOControl and SecurityAccess reference catalogs. `PLAN.md` says what is in this
 slice, `ROADMAP.md` is the obligation matrix, and `docs/sources.md` records where each catalog came
@@ -15,7 +15,7 @@ Run from this directory, never from `D:\code`:
     cargo fmt --check
     cargo doc --no-deps          # with RUSTDOCFLAGS=-D warnings
 
-`python -m projecthub shells verify --rust D:/code/udsdiag` runs all five gates in one pass.
+`python -m projecthub shells verify --rust D:/code/udskit` runs all five gates in one pass.
 
 ## Invariants
 

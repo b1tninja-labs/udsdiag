@@ -1,4 +1,4 @@
-# udsdiag
+# udskit
 
 An offline model of the UDS (ISO 14229-1:2013) and GM GMLAN diagnostic services, split out of the
 `volt` GM head-unit and OBD-app assessment so the protocol model is reusable apart from the research
