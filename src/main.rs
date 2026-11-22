@@ -5,7 +5,8 @@
 
 use std::process::ExitCode;
 
-use udskit::{did, dtc, gmlan, iocontrol, message, mode06, nrc, routine, security, services};
+use udskit::vendor::VendorProfile;
+use udskit::{did, dtc, gm, gmlan, iocontrol, message, mode06, nrc, routine, security, services};
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -64,7 +65,8 @@ fn hex_string(bytes: &[u8]) -> String {
 }
 
 fn cmd_services() -> u8 {
-    for service in services::all_services() {
+    // The ISO 14229-1 core, then each vendor layer (GM GMLAN) composed on top.
+    for service in services::all_services().iter().chain(gm::GM.services()) {
         println!(
             "{:#04x}  {:<8}  {}  [{}]",
             service.sid,

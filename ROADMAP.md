@@ -24,6 +24,13 @@ it belongs in the kit. The services not yet modelled are tracked as `[open]` row
 anchored to its clause; the non-goals above are only the *sibling repos* and the SecurityAccess key
 boundary, not anything ISO 14229-1 itself defines.
 
+**Architecture — core + vendor layers.** The catalog core is pure ISO 14229-1; manufacturer layers
+plug in through `vendor::VendorProfile` rather than being baked into it (GM GMLAN is the first, in
+`gm`). The GM layer lives in this crate for now and can be lifted into its own crate behind that
+interface later (decided: build in-crate now, extract later). The remaining GM-sourced reference data
+(routine, iocontrol, SecurityAccess mechanisms, the Volt DID set, Mode $06 docs) is being routed
+through the profile incrementally — the `[open]` row below.
+
 **Catalog corrections against `primarysource`:** Authentication (0x29) is a standard UDS service from
 the **2020** edition, not 2013 — it is absent from the 2013 Table 22 service list (confirmed via
 `primarysource`; the 2020 edition is not loaded there, so the 2020 attribution is unverified). It is
@@ -35,7 +42,8 @@ ISO 14229-1 services this crate catalogs by SID but does not yet model, each anc
 
 | Status | Obligation | Anchor | Test |
 |---|---|---|---|
-| [ok] | `services::all_services` lists the UDS and GMLAN services, each flagged by standard | ISO 14229-1:2013; GMLAN rows from docs/sources.md | `src/services.rs` `catalog_has_the_core_services`, `gmlan_services_are_flagged`, `get_returns_none_for_unknown_sid` |
+| [ok] | `services::all_services` lists the ISO 14229-1 core services, each flagged by standard (GMLAN is a vendor layer, not here) | ISO 14229-1:2013 (+ 0x29 from 2020) | `src/services.rs` `catalog_has_the_core_services`, `core_is_iso_only`, `get_returns_none_for_unknown_sid` |
+| [ok] | `vendor::VendorProfile` composes vendor services and request→response/filter addressing onto the ISO core; `gm::Gm` is the first vendor layer (the 7 GMLAN services + `+0x400`/`+0x300`) | ISO 14229-1 core + GMLAN assessment (docs/sources.md) | `src/vendor.rs` `resolve_searches_core_then_vendors`; `src/gm.rs` `gm_services_are_flagged_and_addressed` |
 | [ok] | `services::positive_response_sid` adds `0x40`; `request_sid_for_response` / `is_response_sid` invert it | ISO 14229-1:2013 §7.2 | `src/services.rs` `positive_response_sid_adds_0x40` (an `0xFF` request has no response SID) |
 | [ok] | `nrc::all_codes` carries the Table A.1 named codes; `describe` falls back to the reserved range | ISO 14229-1:2013 Annex A, Table A.1 | `src/nrc.rs` `table_a1_values_are_named`, `describe_falls_back_to_the_range` |
 | [ok] | `nrc::is_response_pending` recognises `0x78` | ISO 14229-1:2013 Table A.1 (`0x78` RCRRP) | `src/nrc.rs` `response_pending_is_0x78` |
@@ -83,3 +91,4 @@ ISO 14229-1 services this crate catalogs by SID but does not yet model, each anc
 | [open] | LinkControl (0x87): linkControlType + linkControlModeIdentifier catalog and a builder | ISO 14229-1:2013 §9.11; Annex B.3 | — |
 | [open] | Upload/Download unit (0x34–0x38): RequestDownload / RequestUpload / TransferData / RequestTransferExit / RequestFileTransfer request framing (sans I/O; no flashing — the flow is `spskit`) | ISO 14229-1:2013 §14; Annex G | — |
 | [open] | Authentication (0x29): the sub-functions and request builders | ISO 14229-1:**2020** (edition not in `primarysource`; model when loaded) | — |
+| [open] | Route the remaining GM-sourced reference data (routine, iocontrol, SecurityAccess mechanisms, the Volt DID set, Mode $06 docs) through `vendor::VendorProfile`, so the whole GM layer lifts into its own crate behind the interface | architecture (GMLAN assessment, docs/sources.md) | — |

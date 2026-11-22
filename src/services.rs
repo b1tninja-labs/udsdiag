@@ -1,14 +1,14 @@
 //! The diagnostic service-identifier (SID) catalog.
 //!
-//! Each [`Service`] names a request SID, its mnemonic and whether it is an ISO 14229-1 service
-//! or a GM/GMLAN-specific one. A positive response echoes the request SID raised by `0x40`
-//! (ISO 14229-1:2013, 7.2); [`positive_response_sid`] applies that offset and [`is_response_sid`]
-//! recognises it.
+//! Each [`Service`] names a request SID, its mnemonic and which standard defines it. A positive
+//! response echoes the request SID raised by `0x40` (ISO 14229-1:2013, 7.2);
+//! [`positive_response_sid`] applies that offset and [`is_response_sid`] recognises it.
 //!
-//! The ISO rows are the services defined in ISO 14229-1:2013. The GM rows (`0x1A`, `0x3B`,
-//! `0xA2`, `0xA5`, `0xA9`, `0xAA`, `0xAE`) are the GMLAN services named in the GM GMG3 head-unit
-//! assessment (`docs/sources.md`); GMLAN predates and parallels UDS, so its SIDs overlap the UDS
-//! range but carry GM semantics. A SID outside the catalog is not an error here, only unknown.
+//! This catalog is the **ISO 14229-1 core only** (the 2013 edition, plus Authentication from 2020,
+//! tagged [`Standard::Iso14229Later`]). Vendor services — GM GMLAN is the first — are not here;
+//! they live behind [`crate::vendor::VendorProfile`] (see [`crate::gm`]), and
+//! [`crate::vendor::resolve_service`] composes the core with vendor layers. A SID outside the
+//! catalog is not an error here, only unknown.
 
 use crate::error::{Error, Result};
 
@@ -70,15 +70,6 @@ const fn iso(sid: u8, name: &'static str, mnemonic: &'static str) -> Service {
     }
 }
 
-const fn gm(sid: u8, name: &'static str, mnemonic: &'static str) -> Service {
-    Service {
-        sid,
-        name,
-        mnemonic,
-        standard: Standard::Gmlan,
-    }
-}
-
 const SERVICES: &[Service] = &[
     // ISO 14229-1:2013 — diagnostic and communication management
     iso(0x10, "DiagnosticSessionControl", "DSC"),
@@ -122,14 +113,7 @@ const SERVICES: &[Service] = &[
     iso(0x36, "TransferData", "TD"),
     iso(0x37, "RequestTransferExit", "RTE"),
     iso(0x38, "RequestFileTransfer", "RFT"),
-    // GMLAN (GM GMG3 head-unit assessment; see docs/sources.md)
-    gm(0x1A, "ReadDataByIdentifier (GMLAN)", "GM-RDBI"),
-    gm(0x3B, "WriteDataByIdentifier (GMLAN)", "GM-WDBI"),
-    gm(0xA2, "ReportProgrammedState (GMLAN)", "GM-RPS"),
-    gm(0xA5, "ProgrammingMode (GMLAN)", "GM-PM"),
-    gm(0xA9, "ReadDiagnosticInformation (GMLAN)", "GM-RDI"),
-    gm(0xAA, "ReadDataByPacketIdentifier (GMLAN)", "GM-RDBPI"),
-    gm(0xAE, "DeviceControl (GMLAN)", "GM-DC"),
+    // GMLAN services are a vendor layer, not part of the ISO core — see the `gm` module.
 ];
 
 /// Every service in the catalog, in declaration order.
@@ -210,9 +194,10 @@ mod tests {
     }
 
     #[test]
-    fn gmlan_services_are_flagged() {
-        let device_control = get(0xAE).expect("0xAE catalogued");
-        assert_eq!(device_control.standard, Standard::Gmlan);
+    fn core_is_iso_only() {
         assert_eq!(get(0x22).unwrap().standard, Standard::Iso14229);
+        // GMLAN services are a vendor layer (the `gm` module), not part of the ISO core.
+        assert!(get(0xAE).is_none());
+        assert!(get(0x1A).is_none());
     }
 }

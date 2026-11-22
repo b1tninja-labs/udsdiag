@@ -14,6 +14,7 @@
 pub mod did;
 pub mod dtc;
 pub mod error;
+pub mod gm;
 pub mod gmlan;
 pub mod iocontrol;
 pub mod message;
@@ -22,5 +23,7 @@ pub mod nrc;
 pub mod routine;
 pub mod security;
 pub mod services;
+pub mod vendor;
 
 pub use error::{Error, Result};
+pub use vendor::VendorProfile;
