@@ -24,10 +24,27 @@ fn the_status_decoder_is_public() {
 
 #[test]
 fn security_access_exposes_no_key_derivation() {
-    // Only the requestSeed PDU is buildable; there is no seed->key function to call.
+    // Only the requestSeed PDU is buildable in the core; there is no seed->key function to call.
     assert_eq!(
         security::build_request_seed(0x01).unwrap(),
         vec![0x27, 0x01]
     );
-    assert!(security::mechanism(security::ADIT_ALD).is_ok());
+}
+
+#[cfg(feature = "gm")]
+#[test]
+fn gm_vendor_layer_is_reachable() {
+    use udskit::vendor::{VendorProfile, resolve_service};
+    // The GM layer composes onto the ISO core through the vendor interface.
+    assert_eq!(
+        udskit::gm::GM.service(0xAE).unwrap().name,
+        "DeviceControl (GMLAN)"
+    );
+    assert_eq!(
+        resolve_service(0xAE, &[&udskit::gm::GM]).unwrap().name,
+        "DeviceControl (GMLAN)"
+    );
+    // The GM reference catalogs are routed through the gm layer.
+    assert_eq!(udskit::gm::dids::read_dids().len(), 115);
+    assert!(udskit::gm::security::mechanism(udskit::gm::security::ADIT_ALD).is_ok());
 }

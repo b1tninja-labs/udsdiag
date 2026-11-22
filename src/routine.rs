@@ -1,17 +1,12 @@
-//! RoutineControl (`0x31`): sub-functions, request building, and the routine catalog.
+//! RoutineControl (`0x31`): sub-functions and request building (ISO 14229-1:2013, 13.2).
 //!
 //! RoutineControl runs a server-side routine named by a 2-byte routineIdentifier. The three
 //! sub-functions are `0x01` startRoutine, `0x02` stopRoutine and `0x03` requestRoutineResults
-//! (ISO 14229-1:2013, 13.2; startRoutine is mandatory, the other two user-optional).
-//! [`build_request`] assembles `0x31 <sub-function> <routineId MSB> <routineId LSB> [data]`.
+//! (startRoutine is mandatory, the other two user-optional). [`build_request`] assembles
+//! `0x31 <sub-function> <routineId MSB> <routineId LSB> [data]`.
 //!
-//! The routine catalog is the set resolved in the GM GMG3 head-unit's `procdiagnosis` image
-//! (`docs/sources.md`), each routine's on-wire ID and effect. These are GM-specific routines on
-//! one module, not ISO-defined identifiers. `risk` flags the two sharpest ones: `0x3202`
-//! StressTest (a fixed `execv("/usr/bin/stress", argv)` with an attacker-chosen argument vector
-//! — resource-exhaustion DoS, not arbitrary command execution) and `0xD001`
-//! SetSystemToDeliveryState (factory/shipping reset). All leaves are gated by SecurityAccess
-//! (`0x27` -> ALD); see [`crate::security`].
+//! The concrete routine *catalog* resolved in the GM GMG3 head unit is GM-specific and lives in
+//! the `gm` vendor layer (`gm::routines`). The [`Routine`] type lives here so both share it.
 
 use crate::error::{Error, Result};
 
@@ -63,7 +58,7 @@ pub fn build_request(subfunction: u8, routine_id: u16, data: &[u8]) -> Result<Ve
     Ok(pdu)
 }
 
-/// One concrete routine on the assessed module.
+/// One concrete routine on an assessed module.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Routine {
     /// The on-wire routine identifier.
@@ -83,61 +78,6 @@ impl Routine {
     }
 }
 
-const fn routine(
-    routine_id: u16,
-    name: &'static str,
-    effect: &'static str,
-    risk: &'static str,
-) -> Routine {
-    Routine {
-        routine_id,
-        name,
-        effect,
-        risk,
-    }
-}
-
-// GMG3 head-unit procdiagnosis routines (docs/sources.md).
-const CATALOG: &[Routine] = &[
-    routine(
-        0x3202,
-        "StressTest",
-        "fork()+execv(/usr/bin/stress, argv) with attacker-chosen args (DoS)",
-        "H",
-    ),
-    routine(
-        0xD001,
-        "SetSystemToDeliveryState",
-        "factory / shipping-state reset (de-personalise the unit)",
-        "H",
-    ),
-    routine(0x3200, "RunIn", "end-of-line burn-in start", "M"),
-    routine(0x3201, "RunInClearResults", "clear burn-in results", "M"),
-    routine(
-        0x3069,
-        "GNSSCalcAndVerifyChecksum",
-        "GNSS firmware CRC verify",
-        "L",
-    ),
-    routine(0x3040, "IPODSelfTest", "iPod / USB self-test", "L"),
-    routine(
-        0x3204,
-        "DisplayTestScreenSlideshow",
-        "pushes display test patterns",
-        "L",
-    ),
-];
-
-/// The routine catalog.
-pub const fn catalog() -> &'static [Routine] {
-    CATALOG
-}
-
-/// The routine for an on-wire ID, or `None` when it is not catalogued.
-pub fn get(routine_id: u16) -> Option<Routine> {
-    CATALOG.iter().copied().find(|r| r.routine_id == routine_id)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -153,18 +93,6 @@ mod tests {
             vec![0x31, 0x03, 0x52, 0x47, 0x01]
         );
         assert!(build_request(0x09, 0x3202, &[]).is_err());
-    }
-
-    #[test]
-    fn the_catalog_names_the_sharp_edges() {
-        let stress = get(0x3202).expect("0x3202 catalogued");
-        assert_eq!(stress.name, "StressTest");
-        assert_eq!(stress.risk, "H");
-        assert_eq!(get(0xD001).unwrap().name, "SetSystemToDeliveryState");
-        assert!(get(0x0000).is_none());
-        for r in catalog() {
-            assert!(["H", "M", "L"].contains(&r.risk));
-        }
     }
 
     #[test]

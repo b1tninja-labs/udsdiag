@@ -19,12 +19,13 @@ write-ups. Written in Rust (edition 2024, MSRV 1.85), standard library only.
 ## Architecture: core + vendor layers
 
 The service catalog core is pure ISO 14229-1; manufacturer layers plug in through
-`vendor::VendorProfile` rather than being baked into it. `gm::Gm` is the first vendor layer — the
-GMLAN services and `+0x400`/`+0x300` addressing — and `vendor::resolve_service` composes the ISO
-core with any number of vendor profiles. The GM layer lives in this crate for now; the trait
-boundary lets it be lifted into its own crate later without touching the core. The other
-GM-sourced catalogs (routine, iocontrol, security, DID, Mode $06) are being routed through the
-profile incrementally (`ROADMAP.md`).
+`vendor::VendorProfile` rather than being baked into it. `gm::Gm` is the first vendor layer, and
+`vendor::resolve_service` composes the ISO core with any number of vendor profiles. **All**
+GM-sourced data — the GMLAN services and `+0x400`/`+0x300` addressing, the Volt DID set, the DTC
+reference subset, the GMG3 RoutineControl/IOControl/SecurityAccess catalogs, and the Mode $06 docs —
+lives in the `gm` module behind the default-on `gm` cargo feature, reusing the ISO core types.
+`cargo build --no-default-features` gives a pure ISO 14229-1 core with no GM data linked. The trait
+boundary lets the whole layer lift into its own crate later without touching the core.
 
 ## Not this crate
 

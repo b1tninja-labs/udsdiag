@@ -1,18 +1,17 @@
-//! SecurityAccess (`0x27`): the level-pairing model and two mechanism descriptors.
+//! SecurityAccess (`0x27`): the level-pairing model (ISO 14229-1:2013, 9.4).
 //!
 //! SecurityAccess unlocks protected services. It is a two-step exchange: the client sends
 //! requestSeed (an odd sub-function), the server returns a seed, the client sends sendKey (the
 //! next even sub-function) with a key derived from the seed, and the server unlocks or answers
-//! NRC `0x35` invalidKey (ISO 14229-1:2013, 9.4). A fixed relationship binds each requestSeed to
-//! its sendKey: requestSeed `0x01` to sendKey `0x02`, `0x03` to `0x04`, and so on.
+//! NRC `0x35` invalidKey. A fixed relationship binds each requestSeed to its sendKey: `0x01` to
+//! `0x02`, `0x03` to `0x04`, and so on.
 //!
 //! # Scope boundary
-//! This module models the *exchange shape* only. It contains no seed->key algorithm, no key
-//! material, and no key-derivation method, and it will not compute a key. That is out of scope by
-//! design (`docs/security-access.md`). [`MECHANISMS`] describes the two mechanisms the assessment
-//! distinguished — the classic GM seed/key (a per-module secret held by GM) and the GMG3 head
-//! unit's ADIT ALD, an RSA-2048 signed challenge/response — as reference descriptors, not as
-//! anything runnable.
+//! This module models the *exchange shape* only — no seed->key algorithm, no key material, no
+//! key-derivation method. The concrete mechanism *descriptors* the assessment distinguished (the
+//! classic GM seed/key and the GMG3 ADIT ALD) are GM-specific and live in the `gm` vendor layer
+//! (`gm::mechanisms`); the [`Mechanism`] type lives here so both share it. No layer carries key
+//! material.
 
 use crate::error::{Error, Result};
 
@@ -86,7 +85,8 @@ pub fn build_request_seed(level: u8) -> Result<Vec<u8>> {
     }
 }
 
-/// A description of how a server verifies a SecurityAccess key. Reference only.
+/// A description of how a server verifies a SecurityAccess key. Reference only; carries no key
+/// material or algorithm.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Mechanism {
     /// The mechanism name.
@@ -97,51 +97,6 @@ pub struct Mechanism {
     pub summary: &'static str,
     /// The NRC a bad key draws (`0x35` invalidKey).
     pub invalid_key_nrc: u8,
-}
-
-/// The lookup key for the classic GM seed/key mechanism.
-pub const CLASSIC_GM_SEED_KEY: &str = "classic-gm-seed-key";
-/// The lookup key for the ADIT ALD mechanism.
-pub const ADIT_ALD: &str = "adit-ald";
-
-/// Reference descriptors (`docs/security-access.md`). Neither carries key material or an algorithm.
-pub const MECHANISMS: &[(&str, Mechanism)] = &[
-    (
-        CLASSIC_GM_SEED_KEY,
-        Mechanism {
-            name: "Classic GM seed/key",
-            family: "seed-key",
-            summary: "A module returns a short seed; the tester returns a key computed from it by a \
-                      per-module secret algorithm held by GM. The algorithm and keys are not in scope.",
-            invalid_key_nrc: 0x35,
-        },
-    ),
-    (
-        ADIT_ALD,
-        Mechanism {
-            name: "ADIT ALD (GMG3 head unit)",
-            family: "challenge-response",
-            summary: "SecurityAccess 0x27 is a front-end over the ADIT Access-Level Daemon. The server \
-                      returns a 96-byte device-bound challenge (16-byte rand() nonce, 8-byte timestamp, \
-                      8-byte i.MX6 serial, 16-byte caller ECU_ID). The tester returns an RSA-2048 signed \
-                      block; the daemon verifies the signature against the per-level public key (level.pub) \
-                      and memcmp's the response against the live challenge. A bad key is NRC 0x35. The \
-                      per-level private keys are held by GM/Bosch and are out of scope.",
-            invalid_key_nrc: 0x35,
-        },
-    ),
-];
-
-/// Look up a mechanism descriptor by key.
-///
-/// # Errors
-/// Returns an error when `key` names no catalogued mechanism.
-pub fn mechanism(key: &str) -> Result<Mechanism> {
-    MECHANISMS
-        .iter()
-        .find(|&&(k, _)| k == key)
-        .map(|&(_, m)| m)
-        .ok_or_else(|| Error::new(format!("unknown security-access mechanism: {key:?}")))
 }
 
 #[cfg(test)]
@@ -158,17 +113,6 @@ mod tests {
         assert!(!is_request_seed(0x02).unwrap());
         assert_eq!(build_request_seed(0x01).unwrap(), vec![0x27, 0x01]);
         assert!(send_key_for(0x02).is_err()); // even is a sendKey, not a requestSeed
-    }
-
-    #[test]
-    fn mechanisms_cover_classic_and_ald() {
-        let classic = mechanism(CLASSIC_GM_SEED_KEY).unwrap();
-        let ald = mechanism(ADIT_ALD).unwrap();
-        assert_eq!(classic.family, "seed-key");
-        assert_eq!(ald.family, "challenge-response");
-        assert_eq!(ald.invalid_key_nrc, 0x35);
-        assert!(ald.summary.contains("RSA-2048"));
-        assert!(mechanism("nope").is_err());
     }
 
     #[test]

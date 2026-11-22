@@ -1,12 +1,18 @@
 //! The `udskit` command line: a read-only reference over the catalogs.
 //!
 //! Every sub-command prints from the in-crate catalogs or decodes a hex PDU you paste. Nothing
-//! here opens a bus, sends a frame, or derives a key.
+//! here opens a bus, sends a frame, or derives a key. The commands that read GM reference data
+//! (`services` partly, `did`, `dtc`, `routines`, `iocontrol`, `security`, `mode06`) require the
+//! default `gm` feature; the ISO-only commands (`nrc`, `status`, `decode`, `gmlan`) are always
+//! present.
 
 use std::process::ExitCode;
 
+#[cfg(feature = "gm")]
+use udskit::gm;
+#[cfg(feature = "gm")]
 use udskit::vendor::VendorProfile;
-use udskit::{did, dtc, gm, gmlan, iocontrol, message, mode06, nrc, routine, security, services};
+use udskit::{did, dtc, gmlan, message, nrc, services};
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -18,15 +24,21 @@ fn main() -> ExitCode {
     let code = match command.as_str() {
         "services" => cmd_services(),
         "nrc" => cmd_nrc(rest),
-        "did" => cmd_did(),
-        "dtc" => cmd_dtc(rest),
         "status" => cmd_status(rest),
-        "routines" => cmd_routines(),
-        "iocontrol" => cmd_iocontrol(),
-        "security" => cmd_security(),
-        "mode06" => cmd_mode06(),
         "decode" => cmd_decode(rest),
         "gmlan" => cmd_gmlan(rest),
+        #[cfg(feature = "gm")]
+        "did" => cmd_did(),
+        #[cfg(feature = "gm")]
+        "dtc" => cmd_dtc(rest),
+        #[cfg(feature = "gm")]
+        "routines" => cmd_routines(),
+        #[cfg(feature = "gm")]
+        "iocontrol" => cmd_iocontrol(),
+        #[cfg(feature = "gm")]
+        "security" => cmd_security(),
+        #[cfg(feature = "gm")]
+        "mode06" => cmd_mode06(),
         other => {
             eprintln!("unknown command: {other}\n{USAGE}");
             2
@@ -64,16 +76,24 @@ fn hex_string(bytes: &[u8]) -> String {
     })
 }
 
+fn print_service(service: &services::Service) {
+    println!(
+        "{:#04x}  {:<8}  {}  [{}]",
+        service.sid,
+        service.mnemonic,
+        service.name,
+        service.standard.label()
+    );
+}
+
 fn cmd_services() -> u8 {
     // The ISO 14229-1 core, then each vendor layer (GM GMLAN) composed on top.
-    for service in services::all_services().iter().chain(gm::GM.services()) {
-        println!(
-            "{:#04x}  {:<8}  {}  [{}]",
-            service.sid,
-            service.mnemonic,
-            service.name,
-            service.standard.label()
-        );
+    for service in services::all_services() {
+        print_service(service);
+    }
+    #[cfg(feature = "gm")]
+    for service in gm::GM.services() {
+        print_service(service);
     }
     0
 }
@@ -93,20 +113,22 @@ fn cmd_nrc(rest: &[String]) -> u8 {
     0
 }
 
+#[cfg(feature = "gm")]
 fn cmd_did() -> u8 {
-    for entry in did::read_dids() {
+    for entry in gm::dids::read_dids() {
         println!("22 {}  {}", entry.hex(), entry.category);
     }
     println!("--");
-    for (category, count) in did::count_by_category() {
+    for (category, count) in gm::dids::count_by_category() {
         println!("{count:>4}  {category}");
     }
     0
 }
 
+#[cfg(feature = "gm")]
 fn cmd_dtc(rest: &[String]) -> u8 {
     if let Some(arg) = rest.first() {
-        match dtc::get(arg) {
+        match gm::dtc::get(arg) {
             Some(entry) => {
                 let flag = if entry.in_17obdg01 {
                     "17OBDG01"
@@ -132,19 +154,19 @@ fn cmd_dtc(rest: &[String]) -> u8 {
         }
         return 0;
     }
-    for entry in dtc::catalog() {
+    for entry in gm::dtc::reference() {
         let flag = if entry.in_17obdg01 { "Y" } else { "-" };
         println!("{}  [{flag}]  {}", entry.code, entry.name);
     }
     println!("--");
-    let counts = dtc::APP_DTC_COUNTS
+    let counts = gm::dtc::APP_DTC_COUNTS
         .iter()
         .map(|&(prefix, n)| format!("{prefix}={n}"))
         .collect::<Vec<_>>()
         .join(", ");
     println!(
         "app DTC-name table: {} codes ({counts})",
-        dtc::APP_DTC_TOTAL
+        gm::dtc::APP_DTC_TOTAL
     );
     0
 }
@@ -172,8 +194,9 @@ fn cmd_status(rest: &[String]) -> u8 {
     0
 }
 
+#[cfg(feature = "gm")]
 fn cmd_routines() -> u8 {
-    for entry in routine::catalog() {
+    for entry in gm::routines::catalog() {
         println!(
             "31 .. {}  [{}]  {}: {}",
             entry.hex(),
@@ -185,8 +208,9 @@ fn cmd_routines() -> u8 {
     0
 }
 
+#[cfg(feature = "gm")]
 fn cmd_iocontrol() -> u8 {
-    for &(group, signals) in iocontrol::signal_groups() {
+    for &(group, signals) in gm::signals::groups() {
         println!("{group} ({})", signals.len());
         for signal in signals {
             println!("    {signal}");
@@ -195,8 +219,9 @@ fn cmd_iocontrol() -> u8 {
     0
 }
 
+#[cfg(feature = "gm")]
 fn cmd_security() -> u8 {
-    for &(_, mech) in security::MECHANISMS {
+    for &(_, mech) in gm::security::MECHANISMS {
         println!(
             "{}  [{}]  invalidKey={:#04x}",
             mech.name, mech.family, mech.invalid_key_nrc
@@ -210,8 +235,9 @@ fn cmd_security() -> u8 {
     0
 }
 
+#[cfg(feature = "gm")]
 fn cmd_mode06() -> u8 {
-    for document in mode06::documents() {
+    for document in gm::mode06::documents() {
         let groups = if document.obd_groups.is_empty() {
             "generic".to_owned()
         } else {
@@ -222,8 +248,8 @@ fn cmd_mode06() -> u8 {
     println!("--");
     println!(
         "Chevrolet Volt is OBD Group {}: {} applicable files",
-        mode06::VOLT_OBD_GROUP,
-        mode06::volt_files().len()
+        gm::mode06::VOLT_OBD_GROUP,
+        gm::mode06::volt_files().len()
     );
     0
 }

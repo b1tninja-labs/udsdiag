@@ -25,11 +25,13 @@ anchored to its clause; the non-goals above are only the *sibling repos* and the
 boundary, not anything ISO 14229-1 itself defines.
 
 **Architecture — core + vendor layers.** The catalog core is pure ISO 14229-1; manufacturer layers
-plug in through `vendor::VendorProfile` rather than being baked into it (GM GMLAN is the first, in
-`gm`). The GM layer lives in this crate for now and can be lifted into its own crate behind that
-interface later (decided: build in-crate now, extract later). The remaining GM-sourced reference data
-(routine, iocontrol, SecurityAccess mechanisms, the Volt DID set, Mode $06 docs) is being routed
-through the profile incrementally — the `[open]` row below.
+plug in through `vendor::VendorProfile` rather than being baked into it (GM GMLAN is the first, in the
+`gm` module behind the default-on `gm` cargo feature). **All** GM-sourced reference data lives in `gm`
+— the GMLAN services and `+0x400`/`+0x300` addressing, the Volt DID set, the DTC reference subset, the
+GMG3 RoutineControl / IOControl / SecurityAccess catalogs, and the Mode $06 document list — reusing the
+ISO core types. `--no-default-features` gives a pure ISO 14229-1 core with no GM data linked (23 core
+tests). The whole layer can lift into its own crate behind this boundary later (decided: in-crate now,
+extract later).
 
 **Catalog corrections against `primarysource`:** Authentication (0x29) is a standard UDS service from
 the **2020** edition, not 2013 — it is absent from the 2013 Table 22 service list (confirmed via
@@ -51,21 +53,21 @@ ISO 14229-1 services this crate catalogs by SID but does not yet model, each anc
 | [ok] | `message::decode_response` reads a positive response and answers its request | ISO 14229-1:2013 §7.2 | `src/message.rs` `a_positive_response_decodes_and_answers` |
 | [ok] | `message::decode_response` reads a `0x7F` negative response and its NRC, and rejects a malformed one | ISO 14229-1:2013 §7.5.6 | `src/message.rs` `a_negative_response_decodes_with_its_nrc` (a 2-byte negative response errors) |
 | [ok] | `message::decode_response` marks a `0x78` response pending | ISO 14229-1:2013 Table A.1 | `src/message.rs` `response_pending_is_recognised` |
-| [ok] | `did::read_dids` holds the 115 ReadDataByIdentifier DIDs; the write targets are separate | assessment (docs/sources.md) | `src/did.rs` `the_catalog_has_115_read_dids` |
-| [ok] | `did::classify` names the identification and GM-enhanced-dense ranges by high byte | assessment | `src/did.rs` `classify_names_the_ranges` (gm-enhanced-dense == 92, identification == 3) |
+| [ok] | `gm::dids::read_dids` holds the 115 ReadDataByIdentifier DIDs; the write targets are separate (GM layer) | assessment (docs/sources.md) | `src/gm.rs` `dids::the_catalog_has_115_read_dids` |
+| [ok] | `did::classify` names the identification and GM-enhanced-dense ranges by high byte; `gm::dids::count_by_category` holds the per-category counts | assessment | `src/did.rs` `classify_names_the_ranges`; `src/gm.rs` `dids::counts_by_category` (gm-enhanced-dense == 92, identification == 3) |
 | [ok] | `did::parse_read_response` splits a `0x62` response into DID and value | ISO 14229-1:2013 | `src/did.rs` `parse_read_response_splits_did_and_value` |
 | [ok] | `dtc::encode` / `dtc::decode` round-trip a display code | SAE J2012 / ISO 15031-6 (**unverified**, see docs/iso-map.md) | `src/dtc.rs` `encode_decode_round_trips_a_code` (`P0A7F` <-> `0A 7F`) |
 | [ok] | `dtc::category_of` and `Dtc::category` read the category from the leading letter | assessment | `src/dtc.rs` `category_comes_from_the_letter` |
-| [ok] | `dtc::catalog` carries the representative subset and the per-prefix counts | assessment | `src/dtc.rs` `the_reference_subset_and_counts` (`APP_DTC_TOTAL` == 841) |
+| [ok] | `gm::dtc::reference` / `gm::dtc::get` carry the representative subset and the per-prefix counts (GM layer) | assessment | `src/gm.rs` `dtc::the_reference_subset_and_counts` (`APP_DTC_TOTAL` == 841) |
 | [ok] | `dtc::decode_status` names the status bits set in a statusOfDTC / availability-mask byte | ISO 14229-1:2013 Annex D.2 (Tables D.3–D.11); 11.3.5 examples (Tables 287–289) | `src/dtc.rs` `status_byte_decodes_against_iso_examples` (statusOfDTC `0x24` -> pendingDTC + testFailedSinceLastClear; `0x2F` -> bits 0,1,2,3,5) |
 | [ok] | `routine::build_request` frames the `0x31` sub-function and routine id | ISO 14229-1:2013 §13.2 | `src/routine.rs` `build_request_frames_the_routine`, `subfunction_names` |
-| [ok] | `routine::catalog` names the resolved routines including the sharp edges | assessment | `src/routine.rs` `the_catalog_names_the_sharp_edges` (`0x3202` StressTest, `0xD001` SetSystemToDeliveryState, risk H) |
+| [ok] | `gm::routines::catalog` names the resolved routines including the sharp edges (GM layer) | assessment | `src/gm.rs` `routines::the_catalog_names_the_sharp_edges` (`0x3202` StressTest, `0xD001` SetSystemToDeliveryState, risk H) |
 | [ok] | `iocontrol::build_request` frames the `0x2F` DID and parameter | ISO 14229-1:2013 §E.1 | `src/iocontrol.rs` `build_request_frames_the_signal` |
-| [ok] | `iocontrol::signal_groups` include the IPSIM HMI-injection group | assessment | `src/iocontrol.rs` `signal_groups_include_ipsim_injection`, `all_signals_are_unique` |
+| [ok] | `gm::signals::groups` include the IPSIM HMI-injection group (GM layer) | assessment | `src/gm.rs` `signals::signal_groups_include_ipsim_injection`, `signals::all_signals_are_unique` |
 | [ok] | `security::send_key_for` pairs each requestSeed with its sendKey | ISO 14229-1:2013 §9.4 | `src/security.rs` `requestseed_pairs_with_sendkey` |
-| [ok] | `security::mechanism` describes the classic seed/key and the ADIT ALD mechanisms | assessment (docs/security-access.md) | `src/security.rs` `mechanisms_cover_classic_and_ald` (ALD is RSA-2048, NRC `0x35`) |
+| [ok] | `gm::security::mechanism` describes the classic seed/key and the ADIT ALD mechanisms (GM layer) | assessment (docs/security-access.md) | `src/gm.rs` `security::mechanisms_cover_classic_and_ald` (ALD is RSA-2048, NRC `0x35`) |
 | [ok] | `security::build_request_seed` builds requestSeed; no key-deriving function exists | scope boundary | `src/security.rs` `only_the_exchange_shape_is_modelled` (compile-time: no seed->key fn to call) |
-| [ok] | `mode06::volt_files` selects the Group 1A files for the Volt; `files_for_group` adds the generic files | SAE J1979 / assessment | `src/mode06.rs` `volt_is_group_1a`, `files_for_group_include_generic` |
+| [ok] | `gm::mode06::volt_files` selects the Group 1A files for the Volt; `files_for_group` adds the generic files (GM layer) | SAE J1979 / assessment | `src/gm.rs` `mode06::volt_is_group_1a`, `mode06::files_for_group_include_generic` |
 | [ok] | `gmlan::response_id` / `gmlan::filter_id` apply `+0x400` / `+0x300` | GMLAN assessment (docs/sources.md) | `src/gmlan.rs` `response_and_filter_offsets` (and reject an overflow of 11 bits) |
 | [ok] | `gmlan::obd_response_id` applies the ISO 15765-4 `+8` physical offset | ISO 15765-4 | `src/gmlan.rs` `obd_physical_response_offset` |
 | [ok] | The public API builds a request, decodes its response, and decodes a status byte end to end | — | `tests/smoke.rs` `a_read_did_round_trips_through_the_codec`, `the_status_decoder_is_public`, `security_access_exposes_no_key_derivation` |
@@ -91,4 +93,4 @@ ISO 14229-1 services this crate catalogs by SID but does not yet model, each anc
 | [open] | LinkControl (0x87): linkControlType + linkControlModeIdentifier catalog and a builder | ISO 14229-1:2013 §9.11; Annex B.3 | — |
 | [open] | Upload/Download unit (0x34–0x38): RequestDownload / RequestUpload / TransferData / RequestTransferExit / RequestFileTransfer request framing (sans I/O; no flashing — the flow is `spskit`) | ISO 14229-1:2013 §14; Annex G | — |
 | [open] | Authentication (0x29): the sub-functions and request builders | ISO 14229-1:**2020** (edition not in `primarysource`; model when loaded) | — |
-| [open] | Route the remaining GM-sourced reference data (routine, iocontrol, SecurityAccess mechanisms, the Volt DID set, Mode $06 docs) through `vendor::VendorProfile`, so the whole GM layer lifts into its own crate behind the interface | architecture (GMLAN assessment, docs/sources.md) | — |
+| [ok] | The GM-sourced reference data (routine, iocontrol, SecurityAccess mechanisms, Volt DID set, Mode $06 docs) lives in the `gm` layer behind the default `gm` cargo feature; `--no-default-features` is a pure ISO core | architecture (GMLAN assessment, docs/sources.md) | `src/gm.rs` `dids::*`, `dtc::*`, `routines::*`, `signals::*`, `security::*`, `mode06::*`; `tests/smoke.rs` `gm_vendor_layer_is_reachable` (and the no-default-features lib build) |

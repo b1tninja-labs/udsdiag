@@ -40,7 +40,7 @@ pub fn resolve_service(sid: u8, vendors: &[&dyn VendorProfile]) -> Option<Servic
     vendors.iter().find_map(|vendor| vendor.service(sid))
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "gm"))]
 mod tests {
     use super::*;
     use crate::gm::Gm;

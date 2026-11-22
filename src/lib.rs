@@ -14,6 +14,7 @@
 pub mod did;
 pub mod dtc;
 pub mod error;
+#[cfg(feature = "gm")]
 pub mod gm;
 pub mod gmlan;
 pub mod iocontrol;

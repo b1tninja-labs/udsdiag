@@ -8,6 +8,12 @@ license = "Apache-2.0"
 readme = "README.md"
 publish = false # offline reference library; not published
 
+[features]
+# The GM/GMLAN vendor layer (services, addressing, and the GMG3 reference catalogs). On by
+# default; `--no-default-features` gives a pure ISO 14229-1 core with no GM data linked.
+default = ["gm"]
+gm = []
+
 [lints.rust]
 unsafe_code = "forbid"
 missing_docs = "warn"

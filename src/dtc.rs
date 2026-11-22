@@ -1,20 +1,18 @@
-//! The Diagnostic Trouble Code (DTC) model and reference catalog.
+//! The Diagnostic Trouble Code (DTC) model and the ISO 14229-1 status-byte decoder.
 //!
 //! A DTC is read with ReadDTCInformation (`0x19`) and cleared with ClearDiagnosticInformation
-//! (`0x14`) (ISO 14229-1:2013). Its on-wire form is two bytes; its display form is a letter and
-//! four hex digits (e.g. `P0A7F`). The letter comes from the top two bits of the first byte:
-//! `P` powertrain, `C` chassis, `B` body, `U` network. That two-byte packing is the conventional
-//! SAE J2012 / ISO 15031-6 format; neither document is in `primarysource` (see `docs/iso-map.md`),
-//! so [`encode`] / [`decode`] implement the convention and are marked unverified against the
-//! normative source.
+//! (`0x14`). Its on-wire form is two bytes; its display form is a letter and four hex digits (e.g.
+//! `P0A7F`). The letter comes from the top two bits of the first byte: `P` powertrain, `C` chassis,
+//! `B` body, `U` network. That two-byte packing is the conventional SAE J2012 / ISO 15031-6 format;
+//! neither document is in `primarysource` (see `docs/iso-map.md`), so [`encode`] / [`decode`]
+//! implement the convention and are marked unverified against the normative source.
 //!
 //! The DTC status byte (`statusOfDTC` and `DTCStatusAvailabilityMask`) is decoded by
 //! [`decode_status`] against the ISO 14229-1:2013 Annex D.2 layout (see [`STATUS_BITS`]).
 //!
-//! The reference catalog is a representative subset of the cross-reference between a third-party
-//! Volt app's DTC-name table (841 codes in its `classes.dex`) and GM's own `17OBDG01 Hybrid
-//! Diagnostics` monitor-certification document for the Volt (OBD Group 1A); see `docs/sources.md`.
-//! The per-prefix totals are recorded in [`APP_DTC_COUNTS`].
+//! The concrete DTC reference *catalog* (the Volt subset and the per-prefix counts) is GM-specific
+//! and lives in the `gm` vendor layer (`gm::dtc_reference`). The [`Dtc`] type lives here so both
+//! share it.
 
 use crate::error::{Error, Result};
 
@@ -23,12 +21,7 @@ pub const READ_DTC_INFORMATION: u8 = 0x19;
 /// ClearDiagnosticInformation service id.
 pub const CLEAR_DIAGNOSTIC_INFORMATION: u8 = 0x14;
 
-/// App DTC-name table totals, per prefix, from the Voltage 2.3.0 `classes.dex` extraction.
-pub const APP_DTC_COUNTS: &[(char, u32)] = &[('P', 309), ('B', 139), ('C', 63), ('U', 330)];
-/// The total DTC-name count across prefixes.
-pub const APP_DTC_TOTAL: u32 = 841;
-
-const fn category_for_letter(letter: char) -> Option<&'static str> {
+pub(crate) const fn category_for_letter(letter: char) -> Option<&'static str> {
     match letter {
         'P' => Some("powertrain"),
         'C' => Some("chassis"),
@@ -90,8 +83,8 @@ pub fn category_of(code: &str) -> Result<&'static str> {
 
 /// Pack a display code (e.g. `P0A7F`) into its two on-wire bytes.
 ///
-/// Conventional SAE J2012 / ISO 15031-6 packing (unverified against the normative source; see
-/// the module docs).
+/// Conventional SAE J2012 / ISO 15031-6 packing (unverified against the normative source; see the
+/// module docs).
 ///
 /// # Errors
 /// Returns an error when `code` is not a letter followed by four hex digits.
@@ -227,8 +220,7 @@ pub const fn status_bits() -> &'static [StatusBit] {
 /// The status bits set in an 8-bit DTC status byte, bit 0 first.
 ///
 /// Applies to both a `statusOfDTC` byte and a `DTCStatusAvailabilityMask`: they share the Annex
-/// D.2 layout, so the mask's result names the status bits the server supports. The byte is a
-/// `u8`, so unlike the Python original there is no out-of-range case to reject.
+/// D.2 layout, so the mask's result names the status bits the server supports.
 pub fn decode_status(value: u8) -> Vec<StatusBit> {
     STATUS_BITS
         .iter()
@@ -261,179 +253,6 @@ impl Dtc {
     }
 }
 
-const fn dtc(code: &'static str, name: &'static str, in_17obdg01: bool, note: &'static str) -> Dtc {
-    Dtc {
-        code,
-        name,
-        in_17obdg01,
-        note,
-    }
-}
-
-// Representative cross-reference subset (docs/sources.md). in_17obdg01 marks codes GM's
-// 17OBDG01 Hybrid Diagnostics (Volt, OBD Group 1A) carries in its powertrain cert set.
-const CATALOG: &[Dtc] = &[
-    // High-voltage battery & HV system
-    dtc(
-        "P0A0D",
-        "High Voltage System Interlock Circuit Voltage",
-        true,
-        "HVIL safety interlock",
-    ),
-    dtc("P0A7E", "Hybrid/EV Battery Pack High Temperature", true, ""),
-    dtc(
-        "P0A7F",
-        "Hybrid/EV Battery Pack",
-        true,
-        "GM scopes it to pack capability / end-of-life",
-    ),
-    dtc(
-        "P0AE3",
-        "Hybrid/EV Battery Precharge Contactor Stuck Open",
-        true,
-        "",
-    ),
-    dtc(
-        "P0AF8",
-        "Hybrid System Voltage",
-        true,
-        "pack vs TPIM/charger bus correlation > 16 V",
-    ),
-    dtc(
-        "P0AFB",
-        "Hybrid/EV Battery System Voltage",
-        true,
-        "pack or cell over-voltage",
-    ),
-    dtc(
-        "P0B13",
-        "Hybrid/EV Battery Current Sensor",
-        true,
-        "fine vs coarse current > 10 A",
-    ),
-    dtc(
-        "P0C76",
-        "Hybrid/EV Battery System High Voltage Present",
-        true,
-        "HV discharge time too long",
-    ),
-    dtc(
-        "P0D5E",
-        "Battery Charger System High Voltage Present",
-        true,
-        "",
-    ),
-    // Drive motor & inverter (TPIM)
-    dtc("P0A1C", "Drive Motor Control Module Performance", true, ""),
-    dtc(
-        "P0A79",
-        "Drive Motor Inverter Performance",
-        true,
-        "IGBT desaturation",
-    ),
-    dtc("P0C04", "Drive Motor High Current", true, ""),
-    dtc(
-        "P0C5C",
-        "Drive Motor 1 Position Sensor",
-        true,
-        "resolver circuit low",
-    ),
-    // On-board charger & charge cord
-    dtc(
-        "P0CF6",
-        "Control Pilot Circuit",
-        true,
-        "J1772 pilot out-of-range high",
-    ),
-    dtc(
-        "P0D26",
-        "Battery Charger System Precharge Time Too Long",
-        true,
-        "",
-    ),
-    dtc(
-        "P0D59",
-        "Proximity Detection Circuit Low/High Voltage",
-        true,
-        "charge-cord latch",
-    ),
-    // Engine / range-extender (ECM)
-    dtc("P1101", "Intake Air Flow System Performance", true, ""),
-    dtc("P2097", "Post Catalyst Fuel Trim System", true, ""),
-    dtc("P2138", "Accelerator Pedal Position (APP) Sensor", true, ""),
-    // Communication — in 17OBDG01 powertrain set
-    dtc("U0073", "Control Module Communication Bus A Off", true, ""),
-    dtc(
-        "U0100",
-        "Lost Communication With Engine Control Module",
-        true,
-        "",
-    ),
-    dtc(
-        "U0111",
-        "Lost Communication with Battery Energy Control Module",
-        true,
-        "",
-    ),
-    dtc(
-        "U0140",
-        "Lost Communication With Body Control Module",
-        true,
-        "",
-    ),
-    // Communication — NOT in 17OBDG01 (module the app decodes)
-    dtc(
-        "U0121",
-        "Lost Communication With Electronic Brake Control Module",
-        false,
-        "module: EBCM",
-    ),
-    dtc(
-        "U0146",
-        "Lost Communication with Serial Data Gateway Module",
-        false,
-        "",
-    ),
-    dtc(
-        "U0155",
-        "Lost Communication With Instrument Cluster",
-        false,
-        "module: IPC",
-    ),
-    dtc(
-        "U0184",
-        "Lost Communication With Radio",
-        false,
-        "module: Radio (head unit)",
-    ),
-    dtc(
-        "U0256",
-        "Lost Communication (faceplate)",
-        false,
-        "named in OBD-CONFIG.md",
-    ),
-    // Chassis / brake (BSC section of 17OBDG01)
-    dtc("C0075", "Brake Pedal Position Sensor Performance", true, ""),
-    dtc("C0591", "Brake Booster Motor", true, ""),
-    dtc(
-        "C10EA",
-        "Powertrain Control Module Indicated Requested Torque",
-        true,
-        "",
-    ),
-];
-
-/// The representative DTC reference subset.
-pub const fn catalog() -> &'static [Dtc] {
-    CATALOG
-}
-
-/// The reference entry for a display code, or `None` if not in the subset.
-pub fn get(code: &str) -> Option<Dtc> {
-    let upper = code.to_ascii_uppercase();
-    CATALOG.iter().copied().find(|entry| entry.code == upper)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -456,7 +275,13 @@ mod tests {
         assert_eq!(category_of("C0075").unwrap(), "chassis");
         assert_eq!(category_of("B1234").unwrap(), "body");
         assert_eq!(category_of("U0073").unwrap(), "network");
-        assert_eq!(get("P0A7F").unwrap().category(), "powertrain");
+        let dtc = Dtc {
+            code: "P0A7F",
+            name: "",
+            in_17obdg01: true,
+            note: "",
+        };
+        assert_eq!(dtc.category(), "powertrain");
     }
 
     #[test]
@@ -478,15 +303,5 @@ mod tests {
         let order: Vec<u8> = status_bits().iter().map(|b| b.bit).collect();
         assert_eq!(order, (0..8).collect::<Vec<u8>>());
         assert_eq!(status_bits()[3].mnemonic, "CDTC");
-    }
-
-    #[test]
-    fn the_reference_subset_and_counts() {
-        assert_eq!(APP_DTC_TOTAL, 841);
-        assert_eq!(APP_DTC_COUNTS.iter().map(|&(_, n)| n).sum::<u32>(), 841);
-        assert!(!get("U0184").unwrap().in_17obdg01);
-        assert!(get("P0A0D").unwrap().in_17obdg01);
-        assert!(get("ZZZZZ").is_none());
-        assert!(catalog().len() >= 20);
     }
 }
