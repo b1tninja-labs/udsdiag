@@ -14,7 +14,8 @@ use udskit::gm;
 use udskit::vendor::VendorProfile;
 use udskit::{
     accesstiming, commcontrol, did, dtc, dtcsetting, dynamicdid, ecureset, gmlan, linkcontrol,
-    memory, message, nrc, periodic, readdtc, services, session, testerpresent, transfer,
+    memory, message, nrc, periodic, readdtc, securedtransmission, services, session, testerpresent,
+    transfer,
 };
 
 fn main() -> ExitCode {
@@ -42,6 +43,7 @@ fn main() -> ExitCode {
         "readmem" => cmd_readmem(rest),
         "writemem" => cmd_writemem(rest),
         "transfer" => cmd_transfer(rest),
+        "sdt" => cmd_sdt(rest),
         "rsdbi" => cmd_rsdbi(rest),
         "periodic" => cmd_periodic(rest),
         "status" => cmd_status(rest),
@@ -67,7 +69,7 @@ fn main() -> ExitCode {
     ExitCode::from(code)
 }
 
-const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|accesstiming|linkcontrol|dtcsetting|dddi|rdbi|wdbi|rsdbi|periodic|cleardtc|readdtc|readmem|writemem|transfer|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
+const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|accesstiming|linkcontrol|dtcsetting|dddi|rdbi|wdbi|rsdbi|periodic|cleardtc|readdtc|readmem|writemem|transfer|sdt|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
 
 fn parse_u8_hex(s: &str) -> Option<u8> {
     u8::from_str_radix(s.trim_start_matches("0x").trim_start_matches("0X"), 16).ok()
@@ -730,6 +732,21 @@ fn cmd_transfer(rest: &[String]) -> u8 {
             2
         }
     }
+}
+
+fn cmd_sdt(rest: &[String]) -> u8 {
+    let Some(record) = rest.first().and_then(|s| parse_hex_bytes(s)) else {
+        eprintln!("sdt: usage: sdt <securityDataRequestRecordHex>");
+        return 2;
+    };
+    match securedtransmission::build_request(&record) {
+        Ok(pdu) => println!("SecuredDataTransmission  -> {}", hex_string(&pdu)),
+        Err(err) => {
+            eprintln!("sdt: {err}");
+            return 2;
+        }
+    }
+    0
 }
 
 fn cmd_status(rest: &[String]) -> u8 {

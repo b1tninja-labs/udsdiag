@@ -31,6 +31,7 @@ pub mod nrc;
 pub mod periodic;
 pub mod readdtc;
 pub mod routine;
+pub mod securedtransmission;
 pub mod security;
 pub mod services;
 pub mod session;

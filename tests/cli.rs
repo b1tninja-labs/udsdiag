@@ -226,6 +226,14 @@ fn transfer_command_builds() {
 }
 
 #[test]
+fn sdt_command_builds() {
+    let (out, code) = run(&["sdt", "010203"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("84010203"));
+    assert_eq!(run(&["sdt"]).1, 2); // needs a record
+}
+
+#[test]
 fn decode_and_gmlan_render() {
     let (out, code) = run(&["decode", "7F2231"]);
     assert_eq!(code, 0);
