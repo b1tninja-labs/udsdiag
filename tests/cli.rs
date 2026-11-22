@@ -96,6 +96,18 @@ fn testerpresent_command_builds() {
 }
 
 #[test]
+fn commcontrol_command_lists_and_builds() {
+    let (out, code) = run(&["commcontrol"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("enableRxAndTx"));
+    assert!(out.contains("disableRxAndTx"));
+    let (out, _) = run(&["commcontrol", "03", "01"]);
+    assert!(out.contains("disableRxAndTx"));
+    assert!(out.contains("280301"));
+    assert_eq!(run(&["commcontrol", "04", "01"]).1, 2); // enhanced needs a node id
+}
+
+#[test]
 fn decode_and_gmlan_render() {
     let (out, code) = run(&["decode", "7F2231"]);
     assert_eq!(code, 0);

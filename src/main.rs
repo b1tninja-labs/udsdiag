@@ -12,7 +12,9 @@ use std::process::ExitCode;
 use udskit::gm;
 #[cfg(feature = "gm")]
 use udskit::vendor::VendorProfile;
-use udskit::{did, dtc, ecureset, gmlan, message, nrc, services, session, testerpresent};
+use udskit::{
+    commcontrol, did, dtc, ecureset, gmlan, message, nrc, services, session, testerpresent,
+};
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -27,6 +29,7 @@ fn main() -> ExitCode {
         "session" => cmd_session(rest),
         "ecureset" => cmd_ecureset(rest),
         "testerpresent" => cmd_testerpresent(),
+        "commcontrol" => cmd_commcontrol(rest),
         "status" => cmd_status(rest),
         "decode" => cmd_decode(rest),
         "gmlan" => cmd_gmlan(rest),
@@ -50,7 +53,7 @@ fn main() -> ExitCode {
     ExitCode::from(code)
 }
 
-const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
+const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
 
 fn parse_u8_hex(s: &str) -> Option<u8> {
     u8::from_str_radix(s.trim_start_matches("0x").trim_start_matches("0X"), 16).ok()
@@ -235,6 +238,48 @@ fn cmd_testerpresent() -> u8 {
         "3e 00  zeroSubFunction  -> {}",
         hex_string(&testerpresent::build_request())
     );
+    0
+}
+
+fn cmd_commcontrol(rest: &[String]) -> u8 {
+    if rest.is_empty() {
+        for entry in commcontrol::control_types() {
+            println!(
+                "{:#04x}  {:<11}  {}",
+                entry.value, entry.mnemonic, entry.name
+            );
+        }
+        return 0;
+    }
+    if rest.len() < 2 {
+        eprintln!("commcontrol: usage: commcontrol <controlType> <communicationType> [nodeId]");
+        return 2;
+    }
+    let (Some(control_type), Some(comm_type)) = (parse_u8_hex(&rest[0]), parse_u8_hex(&rest[1]))
+    else {
+        eprintln!("commcontrol: expected hex controlType and communicationType");
+        return 2;
+    };
+    let node_id = if let Some(s) = rest.get(2) {
+        let Some(value) = parse_u16_hex(s) else {
+            eprintln!("commcontrol: expected a hex nodeIdentificationNumber");
+            return 2;
+        };
+        Some(value)
+    } else {
+        None
+    };
+    match commcontrol::build_request(control_type, comm_type, node_id) {
+        Ok(pdu) => println!(
+            "28 {control_type:02x}  {}  -> {}",
+            commcontrol::describe(control_type),
+            hex_string(&pdu)
+        ),
+        Err(err) => {
+            eprintln!("commcontrol: {err}");
+            return 2;
+        }
+    }
     0
 }
 

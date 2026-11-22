@@ -11,6 +11,7 @@
 //! derivation, by design. Every protocol claim is anchored to a standard read through
 //! `primarysource` and recorded in `docs/iso-map.md`.
 
+pub mod commcontrol;
 pub mod did;
 pub mod dtc;
 pub mod ecureset;
