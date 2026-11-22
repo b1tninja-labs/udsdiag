@@ -199,6 +199,20 @@ fn dddi_command_lists_and_clears() {
 }
 
 #[test]
+fn linkcontrol_command_lists_and_builds() {
+    let (out, code) = run(&["linkcontrol"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("verifyModeTransitionWithFixedParameter"));
+    assert!(out.contains("CAN500000Baud"));
+    let (out, _) = run(&["linkcontrol", "fixed", "05"]);
+    assert!(out.contains("870105"));
+    let (out, _) = run(&["linkcontrol", "specific", "01C200"]);
+    assert!(out.contains("870201c200"));
+    let (out, _) = run(&["linkcontrol", "transition"]);
+    assert!(out.contains("8703"));
+}
+
+#[test]
 fn decode_and_gmlan_render() {
     let (out, code) = run(&["decode", "7F2231"]);
     assert_eq!(code, 0);

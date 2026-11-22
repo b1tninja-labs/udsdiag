@@ -13,8 +13,8 @@ use udskit::gm;
 #[cfg(feature = "gm")]
 use udskit::vendor::VendorProfile;
 use udskit::{
-    accesstiming, commcontrol, did, dtc, dtcsetting, dynamicdid, ecureset, gmlan, memory, message,
-    nrc, periodic, readdtc, services, session, testerpresent,
+    accesstiming, commcontrol, did, dtc, dtcsetting, dynamicdid, ecureset, gmlan, linkcontrol,
+    memory, message, nrc, periodic, readdtc, services, session, testerpresent,
 };
 
 fn main() -> ExitCode {
@@ -32,6 +32,7 @@ fn main() -> ExitCode {
         "testerpresent" => cmd_testerpresent(),
         "commcontrol" => cmd_commcontrol(rest),
         "accesstiming" => cmd_accesstiming(rest),
+        "linkcontrol" => cmd_linkcontrol(rest),
         "dtcsetting" => cmd_dtcsetting(rest),
         "dddi" => cmd_dddi(rest),
         "rdbi" => cmd_rdbi(rest),
@@ -65,7 +66,7 @@ fn main() -> ExitCode {
     ExitCode::from(code)
 }
 
-const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|accesstiming|dtcsetting|dddi|rdbi|wdbi|rsdbi|periodic|cleardtc|readdtc|readmem|writemem|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
+const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|accesstiming|linkcontrol|dtcsetting|dddi|rdbi|wdbi|rsdbi|periodic|cleardtc|readdtc|readmem|writemem|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
 
 fn parse_u8_hex(s: &str) -> Option<u8> {
     u8::from_str_radix(s.trim_start_matches("0x").trim_start_matches("0X"), 16).ok()
@@ -596,6 +597,68 @@ fn cmd_dddi(rest: &[String]) -> u8 {
             eprintln!(
                 "dddi: from the CLI only 'dddi' (list) and 'dddi clear [DID]' are available; the \
                  define builders are library functions"
+            );
+            2
+        }
+    }
+}
+
+fn cmd_linkcontrol(rest: &[String]) -> u8 {
+    match rest.first().map(String::as_str) {
+        None => {
+            for entry in linkcontrol::link_control_types() {
+                println!(
+                    "type {:#04x}  {:<6}  {}",
+                    entry.value, entry.mnemonic, entry.name
+                );
+            }
+            for entry in linkcontrol::mode_identifiers() {
+                println!(
+                    "mode {:#04x}  {:<10}  {}",
+                    entry.value, entry.mnemonic, entry.name
+                );
+            }
+            0
+        }
+        Some("fixed") => {
+            let Some(value) = rest.get(1).and_then(|s| parse_u8_hex(s)) else {
+                eprintln!("linkcontrol: usage: linkcontrol fixed <modeIdentifier>");
+                return 2;
+            };
+            println!(
+                "verifyModeTransitionWithFixedParameter ({})  -> {}",
+                linkcontrol::mode_identifier(value).map_or("?", |m| m.name),
+                hex_string(&linkcontrol::build_verify_fixed(value))
+            );
+            0
+        }
+        Some("specific") => {
+            let Some(baud) = rest.get(1).and_then(|s| parse_u32_hex(s)) else {
+                eprintln!("linkcontrol: usage: linkcontrol specific <baudRateHex>");
+                return 2;
+            };
+            match linkcontrol::build_verify_specific(baud) {
+                Ok(pdu) => println!(
+                    "verifyModeTransitionWithSpecificParameter  -> {}",
+                    hex_string(&pdu)
+                ),
+                Err(err) => {
+                    eprintln!("linkcontrol: {err}");
+                    return 2;
+                }
+            }
+            0
+        }
+        Some("transition") => {
+            println!(
+                "transitionMode  -> {}",
+                hex_string(&linkcontrol::build_transition())
+            );
+            0
+        }
+        Some(_) => {
+            eprintln!(
+                "linkcontrol: usage: linkcontrol [fixed <mode> | specific <baud> | transition]"
             );
             2
         }
