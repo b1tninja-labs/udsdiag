@@ -29,6 +29,7 @@ pub mod routine;
 pub mod security;
 pub mod services;
 pub mod session;
+pub mod subfunction;
 pub mod testerpresent;
 pub mod vendor;
 
