@@ -139,6 +139,19 @@ fn cleardtc_command_builds() {
 }
 
 #[test]
+fn readdtc_command_lists_and_builds() {
+    let (out, code) = run(&["readdtc"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("reportDTCByStatusMask"));
+    assert!(out.contains("reportSupportedDTC"));
+    let (out, _) = run(&["readdtc", "02", "08"]);
+    assert!(out.contains("reportDTCByStatusMask"));
+    assert!(out.contains("190208"));
+    let (out, _) = run(&["readdtc", "0A"]);
+    assert!(out.contains("190a"));
+}
+
+#[test]
 fn decode_and_gmlan_render() {
     let (out, code) = run(&["decode", "7F2231"]);
     assert_eq!(code, 0);

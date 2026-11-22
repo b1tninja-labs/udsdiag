@@ -24,6 +24,7 @@ pub mod iocontrol;
 pub mod message;
 pub mod mode06;
 pub mod nrc;
+pub mod readdtc;
 pub mod routine;
 pub mod security;
 pub mod services;

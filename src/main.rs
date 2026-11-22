@@ -13,7 +13,7 @@ use udskit::gm;
 #[cfg(feature = "gm")]
 use udskit::vendor::VendorProfile;
 use udskit::{
-    commcontrol, did, dtc, dtcsetting, ecureset, gmlan, message, nrc, services, session,
+    commcontrol, did, dtc, dtcsetting, ecureset, gmlan, message, nrc, readdtc, services, session,
     testerpresent,
 };
 
@@ -35,6 +35,7 @@ fn main() -> ExitCode {
         "rdbi" => cmd_rdbi(rest),
         "wdbi" => cmd_wdbi(rest),
         "cleardtc" => cmd_cleardtc(rest),
+        "readdtc" => cmd_readdtc(rest),
         "status" => cmd_status(rest),
         "decode" => cmd_decode(rest),
         "gmlan" => cmd_gmlan(rest),
@@ -58,7 +59,7 @@ fn main() -> ExitCode {
     ExitCode::from(code)
 }
 
-const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|dtcsetting|rdbi|wdbi|cleardtc|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
+const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|dtcsetting|rdbi|wdbi|cleardtc|readdtc|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
 
 fn parse_u8_hex(s: &str) -> Option<u8> {
     u8::from_str_radix(s.trim_start_matches("0x").trim_start_matches("0X"), 16).ok()
@@ -392,6 +393,38 @@ fn cmd_cleardtc(rest: &[String]) -> u8 {
             return 2;
         }
     }
+    0
+}
+
+fn cmd_readdtc(rest: &[String]) -> u8 {
+    if rest.is_empty() {
+        for entry in readdtc::report_types() {
+            println!(
+                "{:#04x}  {:<14}  {}",
+                entry.value, entry.mnemonic, entry.name
+            );
+        }
+        return 0;
+    }
+    let Some(report_type) = parse_u8_hex(&rest[0]) else {
+        eprintln!("readdtc: expected a hex reportType, e.g. 02");
+        return 2;
+    };
+    let parameters = if let Some(s) = rest.get(1) {
+        let Some(bytes) = parse_hex_bytes(s) else {
+            eprintln!("readdtc: expected hex parameters");
+            return 2;
+        };
+        bytes
+    } else {
+        Vec::new()
+    };
+    let pdu = readdtc::build_request(report_type, &parameters);
+    println!(
+        "19 {report_type:02x}  {}  -> {}",
+        readdtc::describe(report_type),
+        hex_string(&pdu)
+    );
     0
 }
 
