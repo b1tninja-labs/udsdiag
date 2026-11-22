@@ -13,8 +13,8 @@ use udskit::gm;
 #[cfg(feature = "gm")]
 use udskit::vendor::VendorProfile;
 use udskit::{
-    commcontrol, did, dtc, dtcsetting, ecureset, gmlan, memory, message, nrc, readdtc, services,
-    session, testerpresent,
+    commcontrol, did, dtc, dtcsetting, ecureset, gmlan, memory, message, nrc, periodic, readdtc,
+    services, session, testerpresent,
 };
 
 fn main() -> ExitCode {
@@ -38,6 +38,8 @@ fn main() -> ExitCode {
         "readdtc" => cmd_readdtc(rest),
         "readmem" => cmd_readmem(rest),
         "writemem" => cmd_writemem(rest),
+        "rsdbi" => cmd_rsdbi(rest),
+        "periodic" => cmd_periodic(rest),
         "status" => cmd_status(rest),
         "decode" => cmd_decode(rest),
         "gmlan" => cmd_gmlan(rest),
@@ -61,7 +63,7 @@ fn main() -> ExitCode {
     ExitCode::from(code)
 }
 
-const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|dtcsetting|rdbi|wdbi|cleardtc|readdtc|readmem|writemem|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
+const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|dtcsetting|rdbi|wdbi|rsdbi|periodic|cleardtc|readdtc|readmem|writemem|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
 
 fn parse_u8_hex(s: &str) -> Option<u8> {
     u8::from_str_radix(s.trim_start_matches("0x").trim_start_matches("0X"), 16).ok()
@@ -466,6 +468,58 @@ fn cmd_writemem(rest: &[String]) -> u8 {
         Ok(pdu) => println!("WriteMemoryByAddress  -> {}", hex_string(&pdu)),
         Err(err) => {
             eprintln!("writemem: {err}");
+            return 2;
+        }
+    }
+    0
+}
+
+fn cmd_rsdbi(rest: &[String]) -> u8 {
+    let Some(arg) = rest.first() else {
+        eprintln!("rsdbi: usage: rsdbi <DID>, e.g. F190");
+        return 2;
+    };
+    let Some(did_value) = parse_u16_hex(arg) else {
+        eprintln!("rsdbi: expected a hex DID");
+        return 2;
+    };
+    println!(
+        "ReadScalingDataByIdentifier  -> {}",
+        hex_string(&did::build_scaling_request(did_value))
+    );
+    0
+}
+
+fn cmd_periodic(rest: &[String]) -> u8 {
+    if rest.is_empty() {
+        for entry in periodic::transmission_modes() {
+            println!(
+                "{:#04x}  {:<4}  {}",
+                entry.value, entry.mnemonic, entry.name
+            );
+        }
+        return 0;
+    }
+    let Some(mode) = parse_u8_hex(&rest[0]) else {
+        eprintln!("periodic: expected a hex transmissionMode, e.g. 02");
+        return 2;
+    };
+    let mut ids = Vec::with_capacity(rest.len().saturating_sub(1));
+    for arg in &rest[1..] {
+        let Some(id) = parse_u8_hex(arg) else {
+            eprintln!("periodic: expected hex periodicDataIdentifiers (1 byte each)");
+            return 2;
+        };
+        ids.push(id);
+    }
+    match periodic::build_request(mode, &ids) {
+        Ok(pdu) => println!(
+            "2a {mode:02x}  {}  -> {}",
+            periodic::describe(mode),
+            hex_string(&pdu)
+        ),
+        Err(err) => {
+            eprintln!("periodic: {err}");
             return 2;
         }
     }

@@ -25,6 +25,7 @@ pub mod memory;
 pub mod message;
 pub mod mode06;
 pub mod nrc;
+pub mod periodic;
 pub mod readdtc;
 pub mod routine;
 pub mod security;

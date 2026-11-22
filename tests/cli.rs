@@ -162,6 +162,19 @@ fn readmem_writemem_commands_build() {
 }
 
 #[test]
+fn rsdbi_periodic_commands_build() {
+    let (out, code) = run(&["rsdbi", "F190"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("24f190"));
+    let (out, _) = run(&["periodic", "02", "E3", "24"]);
+    assert!(out.contains("sendAtMediumRate"));
+    assert!(out.contains("2a02e324"));
+    let (out, _) = run(&["periodic"]);
+    assert!(out.contains("stopSending"));
+    assert_eq!(run(&["periodic", "03"]).1, 2); // a send rate needs an id
+}
+
+#[test]
 fn decode_and_gmlan_render() {
     let (out, code) = run(&["decode", "7F2231"]);
     assert_eq!(code, 0);

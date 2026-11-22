@@ -233,9 +233,8 @@ pub fn decode_status(value: u8) -> Vec<StatusBit> {
 
 /// groupOfDTC: the emissions-related systems group (ISO 14229-1:2013 §11.2.5 example, `0xFFFF33`).
 pub const EMISSIONS_RELATED_SYSTEMS_GROUP: u32 = 0x00FF_FF33;
-/// groupOfDTC: all groups — the conventional "clear all DTCs" value. The full Annex D.1 Table D.1
-/// group list was not read from `primarysource` this session, so this value is **unverified**
-/// against the normative source (see `docs/iso-map.md`).
+/// groupOfDTC: all groups — "clear all DTCs" (ISO 14229-1:2013 Annex D.1 Table D.1: `0xFFFFFF`
+/// = All Groups).
 pub const ALL_GROUPS_OF_DTC: u32 = 0x00FF_FFFF;
 
 /// Build a ClearDiagnosticInformation request PDU (`0x14 <groupOfDTC high, middle, low>`,

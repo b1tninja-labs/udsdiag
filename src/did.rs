@@ -14,6 +14,8 @@ pub const READ_DATA_BY_IDENTIFIER: u8 = 0x22;
 pub const READ_POSITIVE_RESPONSE: u8 = 0x62;
 /// WriteDataByIdentifier service id.
 pub const WRITE_DATA_BY_IDENTIFIER: u8 = 0x2E;
+/// ReadScalingDataByIdentifier service id.
+pub const READ_SCALING_DATA_BY_IDENTIFIER: u8 = 0x24;
 
 /// One Data Identifier and the category its high byte places it in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -92,9 +94,23 @@ pub fn build_write_request(did: u16, data_record: &[u8]) -> Result<Vec<u8>> {
     Ok(pdu)
 }
 
+/// Build a ReadScalingDataByIdentifier request PDU (`0x24 <DID>`, ISO 14229-1:2013 §10.4).
+#[must_use]
+pub fn build_scaling_request(did: u16) -> Vec<u8> {
+    let mut pdu = vec![READ_SCALING_DATA_BY_IDENTIFIER];
+    pdu.extend_from_slice(&did.to_be_bytes());
+    pdu
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn build_scaling_request_frames_the_did() {
+        // ISO 14229-1:2013 §10.4 example: readScalingDataByIdentifier of DID 0xF190.
+        assert_eq!(build_scaling_request(0xF190), vec![0x24, 0xF1, 0x90]);
+    }
 
     #[test]
     fn classify_names_the_ranges() {
