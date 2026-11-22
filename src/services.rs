@@ -80,7 +80,6 @@ const SERVICES: &[Service] = &[
     iso(0x11, "ECUReset", "ER"),
     iso(0x27, "SecurityAccess", "SA"),
     iso(0x28, "CommunicationControl", "CC"),
-    iso(0x29, "Authentication", "AUTH"),
     iso(0x3E, "TesterPresent", "TP"),
     iso(0x83, "AccessTimingParameter", "ATP"),
     iso(0x84, "SecuredDataTransmission", "SDT"),
@@ -106,6 +105,7 @@ const SERVICES: &[Service] = &[
     iso(0x35, "RequestUpload", "RU"),
     iso(0x36, "TransferData", "TD"),
     iso(0x37, "RequestTransferExit", "RTE"),
+    iso(0x38, "RequestFileTransfer", "RFT"),
     // GMLAN (GM GMG3 head-unit assessment; see docs/sources.md)
     gm(0x1A, "ReadDataByIdentifier (GMLAN)", "GM-RDBI"),
     gm(0x3B, "WriteDataByIdentifier (GMLAN)", "GM-WDBI"),
@@ -169,6 +169,10 @@ mod tests {
             assert!(get(sid).is_some(), "missing {sid:#x}");
         }
         assert_eq!(get(0x31).unwrap().name, "RoutineControl");
+        // Authentication (0x29) is an ISO 14229-1:2020 service, not in the 2013 edition (Table 22).
+        assert!(get(0x29).is_none());
+        // RequestFileTransfer (0x38) is a 2013 upload/download service (contents 14.6).
+        assert_eq!(get(0x38).unwrap().name, "RequestFileTransfer");
     }
 
     #[test]

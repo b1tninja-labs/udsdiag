@@ -18,7 +18,19 @@ the Mode $06 PDF parser is `mode06kit`. This crate imports none of them. The GM-
 DID *field semantics* remain catalog-only (they need an owner-authorised vehicle). SecurityAccess
 key derivation is out of scope by design: `src/security.rs` models the exchange shape only.
 
-Every `[ok]` row below names a Rust test that fails if the behaviour regresses.
+Other ISO 14229-1:2013 services are catalogued by SID but deliberately **not modelled** (a
+reference + codec library, not a full UDS stack): ReadMemoryByAddress (0x23, §10.3),
+ReadScalingDataByIdentifier (0x24, §10.4), ReadDataByPeriodicIdentifier (0x2A, §10.5),
+DynamicallyDefineDataIdentifier (0x2C, §10.6), WriteMemoryByAddress (0x3D, §10.8),
+AccessTimingParameter (0x83, §9.7), SecuredDataTransmission (0x84, §9.8), ResponseOnEvent
+(0x86, §9.10), LinkControl (0x87, §9.11), and the Upload/Download functional unit
+(0x34–0x38, §14). **Catalog corrections against `primarysource` (ISO 14229-1:2013 Table 22 / §14.6):**
+Authentication (0x29) is an ISO 14229-1:**2020** service and was removed from the 2013 catalog;
+RequestFileTransfer (0x38) is a 2013 service and was added.
+
+Every `[ok]` row below names a Rust test that fails if the behaviour regresses. The `[open]` rows at
+the end are UDS services ISO 14229-1:2013 defines that this crate catalogs by SID but does not yet
+model — their sub-function/parameter tables and request builders — each anchored to its clause.
 
 | Status | Obligation | Anchor | Test |
 |---|---|---|---|
@@ -49,3 +61,12 @@ Every `[ok]` row below names a Rust test that fails if the behaviour regresses.
 | [ok] | `gmlan::obd_response_id` applies the ISO 15765-4 `+8` physical offset | ISO 15765-4 | `src/gmlan.rs` `obd_physical_response_offset` |
 | [ok] | The public API builds a request, decodes its response, and decodes a status byte end to end | — | `tests/smoke.rs` `a_read_did_round_trips_through_the_codec`, `the_status_decoder_is_public`, `security_access_exposes_no_key_derivation` |
 | [ok] | The read-only CLI prints each catalog, decodes a PDU and status byte from hex, and exits non-zero on bad usage | — | `tests/cli.rs` `catalog_commands_print_expected`, `decode_and_gmlan_render`, `bad_usage_exits_nonzero` (drives the built binary) |
+| [open] | DiagnosticSessionControl (0x10): a `diagnosticSessionType` catalog (default / programming / extended / safetySystem) and a request builder | ISO 14229-1:2013 §9.2 (Table 24/25) | — |
+| [open] | ECUReset (0x11): a `resetType` catalog (hardReset / keyOffOnReset / softReset / enableRapidPowerShutDown / disableRapidPowerShutDown) and a request builder | ISO 14229-1:2013 §9.3 (Table 34) | — |
+| [open] | TesterPresent (0x3E): the zeroSubFunction request builder | ISO 14229-1:2013 §9.6 | — |
+| [open] | CommunicationControl (0x28): a `controlType` catalog and the `communicationType` byte, with a request builder | ISO 14229-1:2013 §9.5; Annex B.1 | — |
+| [open] | ControlDTCSetting (0x85): the `DTCSettingType` on/off sub-functions and a request builder | ISO 14229-1:2013 §9.9 | — |
+| [open] | ReadDTCInformation (0x19): the `reportType` sub-function catalog and per-report request builders (pairs with the existing Annex D.2 status-byte decoder) | ISO 14229-1:2013 §11.3 (Table 258) | — |
+| [open] | The `suppressPosRspMsgIndicationBit` (bit 7 of a sub-function byte): set on encode, strip on decode, for sub-function services | ISO 14229-1:2013 §8.2 (Table 34 note) | — |
+| [open] | ReadDataByIdentifier (0x22): a typed request builder for one or more DIDs (the `0x62` response parse already exists) | ISO 14229-1:2013 §10.2 | — |
+| [open] | WriteDataByIdentifier (0x2E): a request builder over the write-DID catalog | ISO 14229-1:2013 §10.7 | — |
