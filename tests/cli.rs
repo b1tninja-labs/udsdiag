@@ -108,6 +108,18 @@ fn commcontrol_command_lists_and_builds() {
 }
 
 #[test]
+fn dtcsetting_command_lists_and_builds() {
+    let (out, code) = run(&["dtcsetting"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("on"));
+    assert!(out.contains("off"));
+    let (out, _) = run(&["dtcsetting", "02"]);
+    assert!(out.contains("off"));
+    assert!(out.contains("8502"));
+    assert_eq!(run(&["dtcsetting", "00"]).1, 2); // reserved
+}
+
+#[test]
 fn decode_and_gmlan_render() {
     let (out, code) = run(&["decode", "7F2231"]);
     assert_eq!(code, 0);

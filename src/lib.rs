@@ -14,6 +14,7 @@
 pub mod commcontrol;
 pub mod did;
 pub mod dtc;
+pub mod dtcsetting;
 pub mod ecureset;
 pub mod error;
 #[cfg(feature = "gm")]

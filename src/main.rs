@@ -13,7 +13,8 @@ use udskit::gm;
 #[cfg(feature = "gm")]
 use udskit::vendor::VendorProfile;
 use udskit::{
-    commcontrol, did, dtc, ecureset, gmlan, message, nrc, services, session, testerpresent,
+    commcontrol, did, dtc, dtcsetting, ecureset, gmlan, message, nrc, services, session,
+    testerpresent,
 };
 
 fn main() -> ExitCode {
@@ -30,6 +31,7 @@ fn main() -> ExitCode {
         "ecureset" => cmd_ecureset(rest),
         "testerpresent" => cmd_testerpresent(),
         "commcontrol" => cmd_commcontrol(rest),
+        "dtcsetting" => cmd_dtcsetting(rest),
         "status" => cmd_status(rest),
         "decode" => cmd_decode(rest),
         "gmlan" => cmd_gmlan(rest),
@@ -53,7 +55,7 @@ fn main() -> ExitCode {
     ExitCode::from(code)
 }
 
-const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
+const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|dtcsetting|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
 
 fn parse_u8_hex(s: &str) -> Option<u8> {
     u8::from_str_radix(s.trim_start_matches("0x").trim_start_matches("0X"), 16).ok()
@@ -277,6 +279,43 @@ fn cmd_commcontrol(rest: &[String]) -> u8 {
         ),
         Err(err) => {
             eprintln!("commcontrol: {err}");
+            return 2;
+        }
+    }
+    0
+}
+
+fn cmd_dtcsetting(rest: &[String]) -> u8 {
+    if rest.is_empty() {
+        for entry in dtcsetting::setting_types() {
+            println!(
+                "{:#04x}  {:<4}  {}",
+                entry.value, entry.mnemonic, entry.name
+            );
+        }
+        return 0;
+    }
+    let Some(setting_type) = parse_u8_hex(&rest[0]) else {
+        eprintln!("dtcsetting: expected a hex DTCSettingType, e.g. 02");
+        return 2;
+    };
+    let option_record = if let Some(s) = rest.get(1) {
+        let Some(bytes) = parse_hex_bytes(s) else {
+            eprintln!("dtcsetting: expected a hex option record");
+            return 2;
+        };
+        bytes
+    } else {
+        Vec::new()
+    };
+    match dtcsetting::build_request(setting_type, &option_record) {
+        Ok(pdu) => println!(
+            "85 {setting_type:02x}  {}  -> {}",
+            dtcsetting::describe(setting_type),
+            hex_string(&pdu)
+        ),
+        Err(err) => {
+            eprintln!("dtcsetting: {err}");
             return 2;
         }
     }
