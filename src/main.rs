@@ -12,7 +12,7 @@ use std::process::ExitCode;
 use udskit::gm;
 #[cfg(feature = "gm")]
 use udskit::vendor::VendorProfile;
-use udskit::{did, dtc, gmlan, message, nrc, services};
+use udskit::{did, dtc, gmlan, message, nrc, services, session};
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -24,6 +24,7 @@ fn main() -> ExitCode {
     let code = match command.as_str() {
         "services" => cmd_services(),
         "nrc" => cmd_nrc(rest),
+        "session" => cmd_session(rest),
         "status" => cmd_status(rest),
         "decode" => cmd_decode(rest),
         "gmlan" => cmd_gmlan(rest),
@@ -47,7 +48,7 @@ fn main() -> ExitCode {
     ExitCode::from(code)
 }
 
-const USAGE: &str = "usage: udskit <services|nrc|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
+const USAGE: &str = "usage: udskit <services|nrc|session|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
 
 fn parse_u8_hex(s: &str) -> Option<u8> {
     u8::from_str_radix(s.trim_start_matches("0x").trim_start_matches("0X"), 16).ok()
@@ -168,6 +169,34 @@ fn cmd_dtc(rest: &[String]) -> u8 {
         "app DTC-name table: {} codes ({counts})",
         gm::dtc::APP_DTC_TOTAL
     );
+    0
+}
+
+fn cmd_session(rest: &[String]) -> u8 {
+    if let Some(arg) = rest.first() {
+        let Some(value) = parse_u8_hex(arg) else {
+            eprintln!("session: expected a hex session type, e.g. 03");
+            return 2;
+        };
+        match session::build_request(value) {
+            Ok(pdu) => println!(
+                "10 {value:02x}  {}  -> {}",
+                session::describe(value),
+                hex_string(&pdu)
+            ),
+            Err(err) => {
+                eprintln!("session: {err}");
+                return 2;
+            }
+        }
+        return 0;
+    }
+    for entry in session::session_types() {
+        println!(
+            "{:#04x}  {:<6}  {}",
+            entry.value, entry.mnemonic, entry.name
+        );
+    }
     0
 }
 

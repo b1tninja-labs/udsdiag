@@ -64,6 +64,18 @@ fn catalog_commands_print_expected() {
 }
 
 #[test]
+fn session_command_lists_and_builds() {
+    let (out, code) = run(&["session"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("defaultSession"));
+    assert!(out.contains("extendedDiagnosticSession"));
+    let (out, _) = run(&["session", "03"]);
+    assert!(out.contains("extendedDiagnosticSession"));
+    assert!(out.contains("1003"));
+    assert_eq!(run(&["session", "00"]).1, 2); // reserved
+}
+
+#[test]
 fn decode_and_gmlan_render() {
     let (out, code) = run(&["decode", "7F2231"]);
     assert_eq!(code, 0);

@@ -24,6 +24,7 @@ pub mod nrc;
 pub mod routine;
 pub mod security;
 pub mod services;
+pub mod session;
 pub mod vendor;
 
 pub use error::{Error, Result};

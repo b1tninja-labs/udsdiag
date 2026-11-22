@@ -72,7 +72,7 @@ ISO 14229-1 services this crate catalogs by SID but does not yet model, each anc
 | [ok] | `gmlan::obd_response_id` applies the ISO 15765-4 `+8` physical offset | ISO 15765-4 | `src/gmlan.rs` `obd_physical_response_offset` |
 | [ok] | The public API builds a request, decodes its response, and decodes a status byte end to end | — | `tests/smoke.rs` `a_read_did_round_trips_through_the_codec`, `the_status_decoder_is_public`, `security_access_exposes_no_key_derivation` |
 | [ok] | The read-only CLI prints each catalog, decodes a PDU and status byte from hex, and exits non-zero on bad usage | — | `tests/cli.rs` `catalog_commands_print_expected`, `decode_and_gmlan_render`, `bad_usage_exits_nonzero` (drives the built binary) |
-| [open] | DiagnosticSessionControl (0x10): a `diagnosticSessionType` catalog (default / programming / extended / safetySystem) and a request builder | ISO 14229-1:2013 §9.2 (Table 24/25) | — |
+| [ok] | DiagnosticSessionControl (0x10): a `diagnosticSessionType` catalog (default / programming / extended / safetySystem) and a request builder | ISO 14229-1:2013 §9.2, Table 25 | `src/session.rs` `build_request_frames_the_session_type`, `session_types_match_table_25`; `tests/cli.rs` `session_command_lists_and_builds` |
 | [open] | ECUReset (0x11): a `resetType` catalog (hardReset / keyOffOnReset / softReset / enableRapidPowerShutDown / disableRapidPowerShutDown) and a request builder | ISO 14229-1:2013 §9.3 (Table 34) | — |
 | [open] | TesterPresent (0x3E): the zeroSubFunction request builder | ISO 14229-1:2013 §9.6 | — |
 | [open] | CommunicationControl (0x28): a `controlType` catalog and the `communicationType` byte, with a request builder | ISO 14229-1:2013 §9.5; Annex B.1 | — |
