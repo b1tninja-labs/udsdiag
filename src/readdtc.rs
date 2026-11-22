@@ -146,9 +146,41 @@ pub fn build_by_dtc_and_record(report_type: u8, dtc: u32, record_number: u8) -> 
     Ok(build_request(report_type, &[hi, mid, lo, record_number]))
 }
 
+/// UserDefDTCExtendedDataRecordNumber: "all" UserDefDTCExtendedDataRecords (ISO 14229-1:2020/Amd
+/// 1:2022, Table D.17). Used with the `reportUserDefMemoryDTCExtDataRecordByDTCNumber` reportType.
+pub const ALL_USER_DEF_DTC_EXT_DATA_RECORDS: u8 = 0xFF;
+
+/// Describe a UserDefDTCExtendedDataRecordNumber value (ISO 14229-1:2020/Amd 1:2022, Table D.17).
+///
+/// This is the one definition carried by the loaded Amd 1:2022 supplement; the 2013 edition this
+/// crate otherwise models does not contain it.
+pub fn describe_user_def_ext_data_record_number(value: u8) -> &'static str {
+    match value {
+        0x00 => "ISOSAEReserved",
+        0x01..=0xFE => "vehicleManufacturerSpecific",
+        0xFF => "AllUserDefDTCExtDataRecords",
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn user_def_ext_data_record_number_follows_amd1_2022() {
+        assert_eq!(
+            describe_user_def_ext_data_record_number(0x00),
+            "ISOSAEReserved"
+        );
+        assert_eq!(
+            describe_user_def_ext_data_record_number(0x7F),
+            "vehicleManufacturerSpecific"
+        );
+        assert_eq!(
+            describe_user_def_ext_data_record_number(ALL_USER_DEF_DTC_EXT_DATA_RECORDS),
+            "AllUserDefDTCExtDataRecords"
+        );
+    }
 
     #[test]
     fn report_types_match_table_269() {
