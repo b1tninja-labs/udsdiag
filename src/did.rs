@@ -58,6 +58,40 @@ pub fn parse_read_response(pdu: &[u8]) -> Result<(u16, Vec<u8>)> {
     Ok((did, pdu[3..].to_vec()))
 }
 
+/// Build a ReadDataByIdentifier request PDU (`0x22` followed by one or more 2-byte DIDs,
+/// ISO 14229-1:2013 §10.2, Table 142).
+///
+/// # Errors
+/// Returns an error when `dids` is empty.
+pub fn build_read_request(dids: &[u16]) -> Result<Vec<u8>> {
+    if dids.is_empty() {
+        return Err(Error::new("ReadDataByIdentifier needs at least one DID"));
+    }
+    let mut pdu = Vec::with_capacity(1 + dids.len() * 2);
+    pdu.push(READ_DATA_BY_IDENTIFIER);
+    for &did in dids {
+        pdu.extend_from_slice(&did.to_be_bytes());
+    }
+    Ok(pdu)
+}
+
+/// Build a WriteDataByIdentifier request PDU (`0x2E <DID> <dataRecord>`, ISO 14229-1:2013 §10.7,
+/// Table 231).
+///
+/// # Errors
+/// Returns an error when `data_record` is empty (the write needs a value).
+pub fn build_write_request(did: u16, data_record: &[u8]) -> Result<Vec<u8>> {
+    if data_record.is_empty() {
+        return Err(Error::new(
+            "WriteDataByIdentifier needs a non-empty dataRecord",
+        ));
+    }
+    let mut pdu = vec![WRITE_DATA_BY_IDENTIFIER];
+    pdu.extend_from_slice(&did.to_be_bytes());
+    pdu.extend_from_slice(data_record);
+    Ok(pdu)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -80,5 +114,28 @@ mod tests {
             parse_read_response(&[0x62, 0x41, 0xAD, 0x00, 0x00]).unwrap(),
             (0x41AD, vec![0x00, 0x00])
         );
+    }
+
+    #[test]
+    fn build_read_request_frames_dids() {
+        assert_eq!(
+            build_read_request(&[0x002F]).unwrap(),
+            vec![0x22, 0x00, 0x2F]
+        );
+        // ISO 14229-1:2013 §10.2 Example #2: read DIDs 0x010A and 0x0110.
+        assert_eq!(
+            build_read_request(&[0x010A, 0x0110]).unwrap(),
+            vec![0x22, 0x01, 0x0A, 0x01, 0x10]
+        );
+        assert!(build_read_request(&[]).is_err());
+    }
+
+    #[test]
+    fn build_write_request_frames_did_and_data() {
+        assert_eq!(
+            build_write_request(0xD21B, &[0x01]).unwrap(),
+            vec![0x2E, 0xD2, 0x1B, 0x01]
+        );
+        assert!(build_write_request(0x1234, &[]).is_err());
     }
 }

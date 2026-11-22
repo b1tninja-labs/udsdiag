@@ -79,8 +79,8 @@ ISO 14229-1 services this crate catalogs by SID but does not yet model, each anc
 | [ok] | ControlDTCSetting (0x85): the `DTCSettingType` on/off sub-functions and a request builder | ISO 14229-1:2013 §9.9, Table 87 | `src/dtcsetting.rs` `build_request_frames_the_setting_type`, `setting_types_match_table_87`; `tests/cli.rs` `dtcsetting_command_lists_and_builds` |
 | [open] | ReadDTCInformation (0x19): the `reportType` sub-function catalog and per-report request builders (pairs with the existing Annex D.2 status-byte decoder) | ISO 14229-1:2013 §11.3 (Table 258) | — |
 | [open] | The `suppressPosRspMsgIndicationBit` (bit 7 of a sub-function byte): set on encode, strip on decode, for sub-function services | ISO 14229-1:2013 §8.2 (Table 34 note) | — |
-| [open] | ReadDataByIdentifier (0x22): a typed request builder for one or more DIDs (the `0x62` response parse already exists) | ISO 14229-1:2013 §10.2 | — |
-| [open] | WriteDataByIdentifier (0x2E): a request builder over the write-DID catalog | ISO 14229-1:2013 §10.7 | — |
+| [ok] | ReadDataByIdentifier (0x22): a typed request builder for one or more DIDs (the `0x62` response parse already exists) | ISO 14229-1:2013 §10.2, Table 142 | `src/did.rs` `build_read_request_frames_dids`; `tests/cli.rs` `rdbi_wdbi_commands_build` |
+| [ok] | WriteDataByIdentifier (0x2E): a request builder over the write-DID catalog | ISO 14229-1:2013 §10.7, Table 231 | `src/did.rs` `build_write_request_frames_did_and_data`; `tests/cli.rs` `rdbi_wdbi_commands_build` |
 | [open] | ClearDiagnosticInformation (0x14): a request builder over a groupOfDTC | ISO 14229-1:2013 §11.2; Annex D.1 | — |
 | [open] | ReadMemoryByAddress (0x23): request builder with the addressAndLengthFormatIdentifier | ISO 14229-1:2013 §10.3 (Annex H) | — |
 | [open] | ReadScalingDataByIdentifier (0x24): request builder and the scalingByte model | ISO 14229-1:2013 §10.4; Annex C.2/C.3 | — |

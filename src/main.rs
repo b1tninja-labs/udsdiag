@@ -32,6 +32,8 @@ fn main() -> ExitCode {
         "testerpresent" => cmd_testerpresent(),
         "commcontrol" => cmd_commcontrol(rest),
         "dtcsetting" => cmd_dtcsetting(rest),
+        "rdbi" => cmd_rdbi(rest),
+        "wdbi" => cmd_wdbi(rest),
         "status" => cmd_status(rest),
         "decode" => cmd_decode(rest),
         "gmlan" => cmd_gmlan(rest),
@@ -55,7 +57,7 @@ fn main() -> ExitCode {
     ExitCode::from(code)
 }
 
-const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|dtcsetting|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
+const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|dtcsetting|rdbi|wdbi|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
 
 fn parse_u8_hex(s: &str) -> Option<u8> {
     u8::from_str_radix(s.trim_start_matches("0x").trim_start_matches("0X"), 16).ok()
@@ -316,6 +318,48 @@ fn cmd_dtcsetting(rest: &[String]) -> u8 {
         ),
         Err(err) => {
             eprintln!("dtcsetting: {err}");
+            return 2;
+        }
+    }
+    0
+}
+
+fn cmd_rdbi(rest: &[String]) -> u8 {
+    if rest.is_empty() {
+        eprintln!("rdbi: usage: rdbi <DID> [DID...]");
+        return 2;
+    }
+    let mut dids = Vec::with_capacity(rest.len());
+    for arg in rest {
+        let Some(did_value) = parse_u16_hex(arg) else {
+            eprintln!("rdbi: expected hex DIDs, e.g. 002F");
+            return 2;
+        };
+        dids.push(did_value);
+    }
+    match did::build_read_request(&dids) {
+        Ok(pdu) => println!("ReadDataByIdentifier  -> {}", hex_string(&pdu)),
+        Err(err) => {
+            eprintln!("rdbi: {err}");
+            return 2;
+        }
+    }
+    0
+}
+
+fn cmd_wdbi(rest: &[String]) -> u8 {
+    if rest.len() < 2 {
+        eprintln!("wdbi: usage: wdbi <DID> <dataHex>");
+        return 2;
+    }
+    let (Some(did_value), Some(data)) = (parse_u16_hex(&rest[0]), parse_hex_bytes(&rest[1])) else {
+        eprintln!("wdbi: expected a hex DID and a hex data record");
+        return 2;
+    };
+    match did::build_write_request(did_value, &data) {
+        Ok(pdu) => println!("WriteDataByIdentifier  -> {}", hex_string(&pdu)),
+        Err(err) => {
+            eprintln!("wdbi: {err}");
             return 2;
         }
     }

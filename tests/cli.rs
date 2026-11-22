@@ -120,6 +120,17 @@ fn dtcsetting_command_lists_and_builds() {
 }
 
 #[test]
+fn rdbi_wdbi_commands_build() {
+    let (out, code) = run(&["rdbi", "002F", "0110"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("22002f0110"));
+    let (out, _) = run(&["wdbi", "D21B", "01"]);
+    assert!(out.contains("2ed21b01"));
+    assert_eq!(run(&["rdbi"]).1, 2); // needs a DID
+    assert_eq!(run(&["wdbi", "D21B"]).1, 2); // needs data
+}
+
+#[test]
 fn decode_and_gmlan_render() {
     let (out, code) = run(&["decode", "7F2231"]);
     assert_eq!(code, 0);
