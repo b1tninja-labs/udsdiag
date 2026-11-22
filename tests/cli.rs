@@ -88,6 +88,14 @@ fn ecureset_command_lists_and_builds() {
 }
 
 #[test]
+fn testerpresent_command_builds() {
+    let (out, code) = run(&["testerpresent"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("zeroSubFunction"));
+    assert!(out.contains("3e00"));
+}
+
+#[test]
 fn decode_and_gmlan_render() {
     let (out, code) = run(&["decode", "7F2231"]);
     assert_eq!(code, 0);

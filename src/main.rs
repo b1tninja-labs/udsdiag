@@ -12,7 +12,7 @@ use std::process::ExitCode;
 use udskit::gm;
 #[cfg(feature = "gm")]
 use udskit::vendor::VendorProfile;
-use udskit::{did, dtc, ecureset, gmlan, message, nrc, services, session};
+use udskit::{did, dtc, ecureset, gmlan, message, nrc, services, session, testerpresent};
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -26,6 +26,7 @@ fn main() -> ExitCode {
         "nrc" => cmd_nrc(rest),
         "session" => cmd_session(rest),
         "ecureset" => cmd_ecureset(rest),
+        "testerpresent" => cmd_testerpresent(),
         "status" => cmd_status(rest),
         "decode" => cmd_decode(rest),
         "gmlan" => cmd_gmlan(rest),
@@ -49,7 +50,7 @@ fn main() -> ExitCode {
     ExitCode::from(code)
 }
 
-const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
+const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
 
 fn parse_u8_hex(s: &str) -> Option<u8> {
     u8::from_str_radix(s.trim_start_matches("0x").trim_start_matches("0X"), 16).ok()
@@ -226,6 +227,14 @@ fn cmd_ecureset(rest: &[String]) -> u8 {
             entry.value, entry.mnemonic, entry.name
         );
     }
+    0
+}
+
+fn cmd_testerpresent() -> u8 {
+    println!(
+        "3e 00  zeroSubFunction  -> {}",
+        hex_string(&testerpresent::build_request())
+    );
     0
 }
 

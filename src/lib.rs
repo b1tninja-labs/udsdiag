@@ -26,6 +26,7 @@ pub mod routine;
 pub mod security;
 pub mod services;
 pub mod session;
+pub mod testerpresent;
 pub mod vendor;
 
 pub use error::{Error, Result};
