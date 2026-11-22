@@ -13,6 +13,7 @@
 
 pub mod did;
 pub mod dtc;
+pub mod ecureset;
 pub mod error;
 #[cfg(feature = "gm")]
 pub mod gm;

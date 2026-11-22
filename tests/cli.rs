@@ -76,6 +76,18 @@ fn session_command_lists_and_builds() {
 }
 
 #[test]
+fn ecureset_command_lists_and_builds() {
+    let (out, code) = run(&["ecureset"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("hardReset"));
+    assert!(out.contains("enableRapidPowerShutDown"));
+    let (out, _) = run(&["ecureset", "01"]);
+    assert!(out.contains("hardReset"));
+    assert!(out.contains("1101"));
+    assert_eq!(run(&["ecureset", "00"]).1, 2); // reserved
+}
+
+#[test]
 fn decode_and_gmlan_render() {
     let (out, code) = run(&["decode", "7F2231"]);
     assert_eq!(code, 0);
