@@ -87,7 +87,7 @@ ISO 14229-1 services this crate catalogs by SID but does not yet model, each anc
 | [ok] | ReadDataByPeriodicIdentifier (0x2A): transmissionMode + periodic DID request builder | ISO 14229-1:2013 §10.5, Table 174; Annex C.4 Table C.10 | `src/periodic.rs` `transmission_modes_match_table_c10`, `build_request_frames_mode_and_ids`; `tests/cli.rs` `rsdbi_periodic_commands_build` |
 | [open] | DynamicallyDefineDataIdentifier (0x2C): defineByIdentifier / defineByMemoryAddress / clear builders | ISO 14229-1:2013 §10.6 | — |
 | [ok] | WriteMemoryByAddress (0x3D): request builder with the addressAndLengthFormatIdentifier | ISO 14229-1:2013 §10.8, Table 238/239 (Annex H) | `src/memory.rs` `build_write_request_frames_address_size_and_data`; `tests/cli.rs` `readmem_writemem_commands_build` |
-| [open] | AccessTimingParameter (0x83): the four timing-parameter access modes and a builder | ISO 14229-1:2013 §9.7 | — |
+| [ok] | AccessTimingParameter (0x83): the four timing-parameter access modes and a builder | ISO 14229-1:2013 §9.7, Tables 73/74 | `src/accesstiming.rs` `access_types_match_table_74`, `build_request_frames_access_type_and_record`; `tests/cli.rs` `accesstiming_command_lists_and_builds` |
 | [open] | SecuredDataTransmission (0x84): the secured-message envelope framing | ISO 14229-1:2013 §9.8 | — |
 | [open] | ResponseOnEvent (0x86): eventType catalog and the setup request framing | ISO 14229-1:2013 §9.10; Annex B.2 | — |
 | [open] | LinkControl (0x87): linkControlType + linkControlModeIdentifier catalog and a builder | ISO 14229-1:2013 §9.11; Annex B.3 | — |

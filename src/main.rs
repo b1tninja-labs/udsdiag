@@ -13,8 +13,8 @@ use udskit::gm;
 #[cfg(feature = "gm")]
 use udskit::vendor::VendorProfile;
 use udskit::{
-    commcontrol, did, dtc, dtcsetting, ecureset, gmlan, memory, message, nrc, periodic, readdtc,
-    services, session, testerpresent,
+    accesstiming, commcontrol, did, dtc, dtcsetting, ecureset, gmlan, memory, message, nrc,
+    periodic, readdtc, services, session, testerpresent,
 };
 
 fn main() -> ExitCode {
@@ -31,6 +31,7 @@ fn main() -> ExitCode {
         "ecureset" => cmd_ecureset(rest),
         "testerpresent" => cmd_testerpresent(),
         "commcontrol" => cmd_commcontrol(rest),
+        "accesstiming" => cmd_accesstiming(rest),
         "dtcsetting" => cmd_dtcsetting(rest),
         "rdbi" => cmd_rdbi(rest),
         "wdbi" => cmd_wdbi(rest),
@@ -63,7 +64,7 @@ fn main() -> ExitCode {
     ExitCode::from(code)
 }
 
-const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|dtcsetting|rdbi|wdbi|rsdbi|periodic|cleardtc|readdtc|readmem|writemem|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
+const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|accesstiming|dtcsetting|rdbi|wdbi|rsdbi|periodic|cleardtc|readdtc|readmem|writemem|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
 
 fn parse_u8_hex(s: &str) -> Option<u8> {
     u8::from_str_radix(s.trim_start_matches("0x").trim_start_matches("0X"), 16).ok()
@@ -520,6 +521,43 @@ fn cmd_periodic(rest: &[String]) -> u8 {
         ),
         Err(err) => {
             eprintln!("periodic: {err}");
+            return 2;
+        }
+    }
+    0
+}
+
+fn cmd_accesstiming(rest: &[String]) -> u8 {
+    if rest.is_empty() {
+        for entry in accesstiming::access_types() {
+            println!(
+                "{:#04x}  {:<6}  {}",
+                entry.value, entry.mnemonic, entry.name
+            );
+        }
+        return 0;
+    }
+    let Some(access_type) = parse_u8_hex(&rest[0]) else {
+        eprintln!("accesstiming: expected a hex timingParameterAccessType, e.g. 03");
+        return 2;
+    };
+    let record = if let Some(s) = rest.get(1) {
+        let Some(bytes) = parse_hex_bytes(s) else {
+            eprintln!("accesstiming: expected a hex TimingParameterRequestRecord");
+            return 2;
+        };
+        bytes
+    } else {
+        Vec::new()
+    };
+    match accesstiming::build_request(access_type, &record) {
+        Ok(pdu) => println!(
+            "83 {access_type:02x}  {}  -> {}",
+            accesstiming::describe(access_type),
+            hex_string(&pdu)
+        ),
+        Err(err) => {
+            eprintln!("accesstiming: {err}");
             return 2;
         }
     }

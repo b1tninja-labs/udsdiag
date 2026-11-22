@@ -175,6 +175,18 @@ fn rsdbi_periodic_commands_build() {
 }
 
 #[test]
+fn accesstiming_command_lists_and_builds() {
+    let (out, code) = run(&["accesstiming"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("readCurrentlyActiveTimingParameters"));
+    let (out, _) = run(&["accesstiming", "03"]);
+    assert!(out.contains("8303"));
+    let (out, _) = run(&["accesstiming", "04", "1234"]);
+    assert!(out.contains("83041234"));
+    assert_eq!(run(&["accesstiming", "04"]).1, 2); // given-values needs a record
+}
+
+#[test]
 fn decode_and_gmlan_render() {
     let (out, code) = run(&["decode", "7F2231"]);
     assert_eq!(code, 0);
