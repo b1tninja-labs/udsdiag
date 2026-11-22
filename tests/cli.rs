@@ -213,6 +213,19 @@ fn linkcontrol_command_lists_and_builds() {
 }
 
 #[test]
+fn transfer_command_builds() {
+    let (out, code) = run(&["transfer", "download", "00", "00204813", "019A"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("340024002048130")); // 34 00 24 00204813 019A
+    let (out, _) = run(&["transfer", "data", "01", "AABB"]);
+    assert!(out.contains("3601aabb"));
+    let (out, _) = run(&["transfer", "exit"]);
+    assert!(out.contains("37"));
+    let (out, _) = run(&["transfer", "modes"]);
+    assert!(out.contains("AddFile"));
+}
+
+#[test]
 fn decode_and_gmlan_render() {
     let (out, code) = run(&["decode", "7F2231"]);
     assert_eq!(code, 0);

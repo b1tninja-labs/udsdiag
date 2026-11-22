@@ -36,6 +36,7 @@ pub mod services;
 pub mod session;
 pub mod subfunction;
 pub mod testerpresent;
+pub mod transfer;
 pub mod vendor;
 
 pub use error::{Error, Result};

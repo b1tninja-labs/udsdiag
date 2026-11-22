@@ -14,7 +14,7 @@ use udskit::gm;
 use udskit::vendor::VendorProfile;
 use udskit::{
     accesstiming, commcontrol, did, dtc, dtcsetting, dynamicdid, ecureset, gmlan, linkcontrol,
-    memory, message, nrc, periodic, readdtc, services, session, testerpresent,
+    memory, message, nrc, periodic, readdtc, services, session, testerpresent, transfer,
 };
 
 fn main() -> ExitCode {
@@ -41,6 +41,7 @@ fn main() -> ExitCode {
         "readdtc" => cmd_readdtc(rest),
         "readmem" => cmd_readmem(rest),
         "writemem" => cmd_writemem(rest),
+        "transfer" => cmd_transfer(rest),
         "rsdbi" => cmd_rsdbi(rest),
         "periodic" => cmd_periodic(rest),
         "status" => cmd_status(rest),
@@ -66,7 +67,7 @@ fn main() -> ExitCode {
     ExitCode::from(code)
 }
 
-const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|accesstiming|linkcontrol|dtcsetting|dddi|rdbi|wdbi|rsdbi|periodic|cleardtc|readdtc|readmem|writemem|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
+const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|accesstiming|linkcontrol|dtcsetting|dddi|rdbi|wdbi|rsdbi|periodic|cleardtc|readdtc|readmem|writemem|transfer|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
 
 fn parse_u8_hex(s: &str) -> Option<u8> {
     u8::from_str_radix(s.trim_start_matches("0x").trim_start_matches("0X"), 16).ok()
@@ -659,6 +660,72 @@ fn cmd_linkcontrol(rest: &[String]) -> u8 {
         Some(_) => {
             eprintln!(
                 "linkcontrol: usage: linkcontrol [fixed <mode> | specific <baud> | transition]"
+            );
+            2
+        }
+    }
+}
+
+fn cmd_transfer(rest: &[String]) -> u8 {
+    match rest.first().map(String::as_str) {
+        Some("download" | "upload") if rest.len() >= 4 => {
+            let (Some(dfi), Some(addr), Some(size)) = (
+                parse_u8_hex(&rest[1]),
+                parse_hex_bytes(&rest[2]),
+                parse_hex_bytes(&rest[3]),
+            ) else {
+                eprintln!("transfer: expected hex dataFormatIdentifier, address and size");
+                return 2;
+            };
+            let built = if rest[0] == "download" {
+                transfer::build_request_download(dfi, &addr, &size)
+            } else {
+                transfer::build_request_upload(dfi, &addr, &size)
+            };
+            match built {
+                Ok(pdu) => println!("{}  -> {}", rest[0], hex_string(&pdu)),
+                Err(err) => {
+                    eprintln!("transfer: {err}");
+                    return 2;
+                }
+            }
+            0
+        }
+        Some("data") if rest.len() >= 2 => {
+            let Some(bsc) = parse_u8_hex(&rest[1]) else {
+                eprintln!("transfer: expected a hex blockSequenceCounter");
+                return 2;
+            };
+            let data = rest
+                .get(2)
+                .and_then(|s| parse_hex_bytes(s))
+                .unwrap_or_default();
+            println!(
+                "TransferData  -> {}",
+                hex_string(&transfer::build_transfer_data(bsc, &data))
+            );
+            0
+        }
+        Some("exit") => {
+            let params = rest
+                .get(1)
+                .and_then(|s| parse_hex_bytes(s))
+                .unwrap_or_default();
+            println!(
+                "RequestTransferExit  -> {}",
+                hex_string(&transfer::build_request_transfer_exit(&params))
+            );
+            0
+        }
+        Some("modes") | None => {
+            for entry in transfer::modes_of_operation() {
+                println!("{:#04x}  {}", entry.value, entry.name);
+            }
+            0
+        }
+        _ => {
+            eprintln!(
+                "transfer: usage: transfer <download|upload <dfi> <addr> <size> | data <bsc> [data] | exit [params] | modes>"
             );
             2
         }
