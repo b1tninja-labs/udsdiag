@@ -34,6 +34,7 @@ fn main() -> ExitCode {
         "dtcsetting" => cmd_dtcsetting(rest),
         "rdbi" => cmd_rdbi(rest),
         "wdbi" => cmd_wdbi(rest),
+        "cleardtc" => cmd_cleardtc(rest),
         "status" => cmd_status(rest),
         "decode" => cmd_decode(rest),
         "gmlan" => cmd_gmlan(rest),
@@ -57,7 +58,7 @@ fn main() -> ExitCode {
     ExitCode::from(code)
 }
 
-const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|dtcsetting|rdbi|wdbi|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
+const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|dtcsetting|rdbi|wdbi|cleardtc|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
 
 fn parse_u8_hex(s: &str) -> Option<u8> {
     u8::from_str_radix(s.trim_start_matches("0x").trim_start_matches("0X"), 16).ok()
@@ -65,6 +66,10 @@ fn parse_u8_hex(s: &str) -> Option<u8> {
 
 fn parse_u16_hex(s: &str) -> Option<u16> {
     u16::from_str_radix(s.trim_start_matches("0x").trim_start_matches("0X"), 16).ok()
+}
+
+fn parse_u32_hex(s: &str) -> Option<u32> {
+    u32::from_str_radix(s.trim_start_matches("0x").trim_start_matches("0X"), 16).ok()
 }
 
 fn parse_hex_bytes(s: &str) -> Option<Vec<u8>> {
@@ -360,6 +365,30 @@ fn cmd_wdbi(rest: &[String]) -> u8 {
         Ok(pdu) => println!("WriteDataByIdentifier  -> {}", hex_string(&pdu)),
         Err(err) => {
             eprintln!("wdbi: {err}");
+            return 2;
+        }
+    }
+    0
+}
+
+fn cmd_cleardtc(rest: &[String]) -> u8 {
+    let Some(arg) = rest.first() else {
+        eprintln!(
+            "cleardtc: usage: cleardtc <groupOfDTC-hex>, e.g. FFFFFF (all) or FFFF33 (emissions)"
+        );
+        return 2;
+    };
+    let Some(group) = parse_u32_hex(arg) else {
+        eprintln!("cleardtc: expected a hex groupOfDTC");
+        return 2;
+    };
+    match dtc::build_clear_request(group) {
+        Ok(pdu) => println!(
+            "ClearDiagnosticInformation group {group:#08x}  -> {}",
+            hex_string(&pdu)
+        ),
+        Err(err) => {
+            eprintln!("cleardtc: {err}");
             return 2;
         }
     }

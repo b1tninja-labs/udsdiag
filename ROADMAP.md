@@ -81,7 +81,7 @@ ISO 14229-1 services this crate catalogs by SID but does not yet model, each anc
 | [open] | The `suppressPosRspMsgIndicationBit` (bit 7 of a sub-function byte): set on encode, strip on decode, for sub-function services | ISO 14229-1:2013 §8.2 (Table 34 note) | — |
 | [ok] | ReadDataByIdentifier (0x22): a typed request builder for one or more DIDs (the `0x62` response parse already exists) | ISO 14229-1:2013 §10.2, Table 142 | `src/did.rs` `build_read_request_frames_dids`; `tests/cli.rs` `rdbi_wdbi_commands_build` |
 | [ok] | WriteDataByIdentifier (0x2E): a request builder over the write-DID catalog | ISO 14229-1:2013 §10.7, Table 231 | `src/did.rs` `build_write_request_frames_did_and_data`; `tests/cli.rs` `rdbi_wdbi_commands_build` |
-| [open] | ClearDiagnosticInformation (0x14): a request builder over a groupOfDTC | ISO 14229-1:2013 §11.2; Annex D.1 | — |
+| [ok] | ClearDiagnosticInformation (0x14): a request builder over a groupOfDTC | ISO 14229-1:2013 §11.2, Table 250; §11.2.5 (emissions group) | `src/dtc.rs` `build_clear_request_frames_the_group`; `tests/cli.rs` `cleardtc_command_builds` |
 | [open] | ReadMemoryByAddress (0x23): request builder with the addressAndLengthFormatIdentifier | ISO 14229-1:2013 §10.3 (Annex H) | — |
 | [open] | ReadScalingDataByIdentifier (0x24): request builder and the scalingByte model | ISO 14229-1:2013 §10.4; Annex C.2/C.3 | — |
 | [open] | ReadDataByPeriodicIdentifier (0x2A): transmissionMode + periodic DID request builder | ISO 14229-1:2013 §10.5; Annex C.4 | — |

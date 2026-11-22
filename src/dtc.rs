@@ -229,6 +229,30 @@ pub fn decode_status(value: u8) -> Vec<StatusBit> {
         .collect()
 }
 
+// --- ClearDiagnosticInformation (0x14) --------------------------------------------------------
+
+/// groupOfDTC: the emissions-related systems group (ISO 14229-1:2013 §11.2.5 example, `0xFFFF33`).
+pub const EMISSIONS_RELATED_SYSTEMS_GROUP: u32 = 0x00FF_FF33;
+/// groupOfDTC: all groups — the conventional "clear all DTCs" value. The full Annex D.1 Table D.1
+/// group list was not read from `primarysource` this session, so this value is **unverified**
+/// against the normative source (see `docs/iso-map.md`).
+pub const ALL_GROUPS_OF_DTC: u32 = 0x00FF_FFFF;
+
+/// Build a ClearDiagnosticInformation request PDU (`0x14 <groupOfDTC high, middle, low>`,
+/// ISO 14229-1:2013 §11.2, Table 250).
+///
+/// # Errors
+/// Returns an error when `group_of_dtc` does not fit the 3-byte groupOfDTC field (> `0xFFFFFF`).
+pub fn build_clear_request(group_of_dtc: u32) -> Result<Vec<u8>> {
+    if group_of_dtc > 0x00FF_FFFF {
+        return Err(Error::new(format!(
+            "groupOfDTC is a 3-byte value (<= 0xFFFFFF): {group_of_dtc:#x}"
+        )));
+    }
+    let [_, hi, mid, lo] = group_of_dtc.to_be_bytes();
+    Ok(vec![CLEAR_DIAGNOSTIC_INFORMATION, hi, mid, lo])
+}
+
 /// One diagnostic trouble code with its app-side name and GM-document coverage.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Dtc {
@@ -282,6 +306,24 @@ mod tests {
             note: "",
         };
         assert_eq!(dtc.category(), "powertrain");
+    }
+
+    #[test]
+    fn build_clear_request_frames_the_group() {
+        assert_eq!(
+            build_clear_request(ALL_GROUPS_OF_DTC).unwrap(),
+            vec![0x14, 0xFF, 0xFF, 0xFF]
+        );
+        // ISO 14229-1:2013 §11.2.5: emissions-related systems group 0xFFFF33.
+        assert_eq!(
+            build_clear_request(EMISSIONS_RELATED_SYSTEMS_GROUP).unwrap(),
+            vec![0x14, 0xFF, 0xFF, 0x33]
+        );
+        assert_eq!(
+            build_clear_request(0x000A_0D00).unwrap(),
+            vec![0x14, 0x0A, 0x0D, 0x00]
+        );
+        assert!(build_clear_request(0x0100_0000).is_err()); // more than 3 bytes
     }
 
     #[test]

@@ -131,6 +131,14 @@ fn rdbi_wdbi_commands_build() {
 }
 
 #[test]
+fn cleardtc_command_builds() {
+    let (out, code) = run(&["cleardtc", "FFFF33"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("14ffff33"));
+    assert_eq!(run(&["cleardtc", "1000000"]).1, 2); // more than 3 bytes
+}
+
+#[test]
 fn decode_and_gmlan_render() {
     let (out, code) = run(&["decode", "7F2231"]);
     assert_eq!(code, 0);
