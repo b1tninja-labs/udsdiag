@@ -152,6 +152,16 @@ fn readdtc_command_lists_and_builds() {
 }
 
 #[test]
+fn readmem_writemem_commands_build() {
+    let (out, code) = run(&["readmem", "00204813", "019A"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("2324002048130")); // 23 24 00204813 019A
+    let (out, _) = run(&["writemem", "4813", "05", "AABB"]);
+    assert!(out.contains("3d124813")); // 3D 12 4813 05 AABB
+    assert_eq!(run(&["readmem", "00204813"]).1, 2); // needs size
+}
+
+#[test]
 fn decode_and_gmlan_render() {
     let (out, code) = run(&["decode", "7F2231"]);
     assert_eq!(code, 0);

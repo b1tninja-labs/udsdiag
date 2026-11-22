@@ -21,6 +21,7 @@ pub mod error;
 pub mod gm;
 pub mod gmlan;
 pub mod iocontrol;
+pub mod memory;
 pub mod message;
 pub mod mode06;
 pub mod nrc;

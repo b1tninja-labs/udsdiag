@@ -13,8 +13,8 @@ use udskit::gm;
 #[cfg(feature = "gm")]
 use udskit::vendor::VendorProfile;
 use udskit::{
-    commcontrol, did, dtc, dtcsetting, ecureset, gmlan, message, nrc, readdtc, services, session,
-    testerpresent,
+    commcontrol, did, dtc, dtcsetting, ecureset, gmlan, memory, message, nrc, readdtc, services,
+    session, testerpresent,
 };
 
 fn main() -> ExitCode {
@@ -36,6 +36,8 @@ fn main() -> ExitCode {
         "wdbi" => cmd_wdbi(rest),
         "cleardtc" => cmd_cleardtc(rest),
         "readdtc" => cmd_readdtc(rest),
+        "readmem" => cmd_readmem(rest),
+        "writemem" => cmd_writemem(rest),
         "status" => cmd_status(rest),
         "decode" => cmd_decode(rest),
         "gmlan" => cmd_gmlan(rest),
@@ -59,7 +61,7 @@ fn main() -> ExitCode {
     ExitCode::from(code)
 }
 
-const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|dtcsetting|rdbi|wdbi|cleardtc|readdtc|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
+const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|dtcsetting|rdbi|wdbi|cleardtc|readdtc|readmem|writemem|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
 
 fn parse_u8_hex(s: &str) -> Option<u8> {
     u8::from_str_radix(s.trim_start_matches("0x").trim_start_matches("0X"), 16).ok()
@@ -425,6 +427,48 @@ fn cmd_readdtc(rest: &[String]) -> u8 {
         readdtc::describe(report_type),
         hex_string(&pdu)
     );
+    0
+}
+
+fn cmd_readmem(rest: &[String]) -> u8 {
+    if rest.len() < 2 {
+        eprintln!("readmem: usage: readmem <addressHex> <sizeHex>");
+        return 2;
+    }
+    let (Some(address), Some(size)) = (parse_hex_bytes(&rest[0]), parse_hex_bytes(&rest[1])) else {
+        eprintln!("readmem: expected hex memoryAddress and memorySize");
+        return 2;
+    };
+    match memory::build_read_request(&address, &size) {
+        Ok(pdu) => println!("ReadMemoryByAddress  -> {}", hex_string(&pdu)),
+        Err(err) => {
+            eprintln!("readmem: {err}");
+            return 2;
+        }
+    }
+    0
+}
+
+fn cmd_writemem(rest: &[String]) -> u8 {
+    if rest.len() < 3 {
+        eprintln!("writemem: usage: writemem <addressHex> <sizeHex> <dataHex>");
+        return 2;
+    }
+    let (Some(address), Some(size), Some(data)) = (
+        parse_hex_bytes(&rest[0]),
+        parse_hex_bytes(&rest[1]),
+        parse_hex_bytes(&rest[2]),
+    ) else {
+        eprintln!("writemem: expected hex memoryAddress, memorySize and dataRecord");
+        return 2;
+    };
+    match memory::build_write_request(&address, &size, &data) {
+        Ok(pdu) => println!("WriteMemoryByAddress  -> {}", hex_string(&pdu)),
+        Err(err) => {
+            eprintln!("writemem: {err}");
+            return 2;
+        }
+    }
     0
 }
 
