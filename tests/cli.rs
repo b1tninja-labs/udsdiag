@@ -234,6 +234,20 @@ fn sdt_command_builds() {
 }
 
 #[test]
+fn roe_command_lists_and_builds() {
+    let (out, code) = run(&["roe"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("onDTCStatusChange"));
+    assert!(out.contains("startResponseOnEvent"));
+    let (out, _) = run(&["roe", "01", "02", "01", "1901"]);
+    assert!(out.contains("onDTCStatusChange"));
+    assert!(out.contains("860102011901"));
+    let (out, _) = run(&["roe", "05", "02"]);
+    assert!(out.contains("860502"));
+    assert_eq!(run(&["roe", "01", "02"]).1, 2); // onDTCStatusChange needs a record + STR
+}
+
+#[test]
 fn decode_and_gmlan_render() {
     let (out, code) = run(&["decode", "7F2231"]);
     assert_eq!(code, 0);

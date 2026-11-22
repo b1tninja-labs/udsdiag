@@ -14,8 +14,8 @@ use udskit::gm;
 use udskit::vendor::VendorProfile;
 use udskit::{
     accesstiming, commcontrol, did, dtc, dtcsetting, dynamicdid, ecureset, gmlan, linkcontrol,
-    memory, message, nrc, periodic, readdtc, securedtransmission, services, session, testerpresent,
-    transfer,
+    memory, message, nrc, periodic, readdtc, responseonevent, securedtransmission, services,
+    session, testerpresent, transfer,
 };
 
 fn main() -> ExitCode {
@@ -44,6 +44,7 @@ fn main() -> ExitCode {
         "writemem" => cmd_writemem(rest),
         "transfer" => cmd_transfer(rest),
         "sdt" => cmd_sdt(rest),
+        "roe" => cmd_roe(rest),
         "rsdbi" => cmd_rsdbi(rest),
         "periodic" => cmd_periodic(rest),
         "status" => cmd_status(rest),
@@ -69,7 +70,7 @@ fn main() -> ExitCode {
     ExitCode::from(code)
 }
 
-const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|accesstiming|linkcontrol|dtcsetting|dddi|rdbi|wdbi|rsdbi|periodic|cleardtc|readdtc|readmem|writemem|transfer|sdt|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
+const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|accesstiming|linkcontrol|dtcsetting|dddi|rdbi|wdbi|rsdbi|periodic|cleardtc|readdtc|readmem|writemem|transfer|sdt|roe|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
 
 fn parse_u8_hex(s: &str) -> Option<u8> {
     u8::from_str_radix(s.trim_start_matches("0x").trim_start_matches("0X"), 16).ok()
@@ -743,6 +744,48 @@ fn cmd_sdt(rest: &[String]) -> u8 {
         Ok(pdu) => println!("SecuredDataTransmission  -> {}", hex_string(&pdu)),
         Err(err) => {
             eprintln!("sdt: {err}");
+            return 2;
+        }
+    }
+    0
+}
+
+fn cmd_roe(rest: &[String]) -> u8 {
+    if rest.is_empty() {
+        for entry in responseonevent::event_types() {
+            println!(
+                "{:#04x}  {:<8}  {} (record {}B)",
+                entry.value, entry.mnemonic, entry.name, entry.event_type_record_len
+            );
+        }
+        return 0;
+    }
+    if rest.len() < 2 {
+        eprintln!(
+            "roe: usage: roe <eventType> <eventWindowTime> [eventTypeRecordHex] [serviceToRespondToHex]"
+        );
+        return 2;
+    }
+    let (Some(event_type), Some(window)) = (parse_u8_hex(&rest[0]), parse_u8_hex(&rest[1])) else {
+        eprintln!("roe: expected hex eventType and eventWindowTime");
+        return 2;
+    };
+    let record = rest
+        .get(2)
+        .and_then(|s| parse_hex_bytes(s))
+        .unwrap_or_default();
+    let str_record = rest
+        .get(3)
+        .and_then(|s| parse_hex_bytes(s))
+        .unwrap_or_default();
+    match responseonevent::build_request(event_type, window, &record, &str_record) {
+        Ok(pdu) => println!(
+            "86 {event_type:02x}  {}  -> {}",
+            responseonevent::describe(event_type & 0x3F),
+            hex_string(&pdu)
+        ),
+        Err(err) => {
+            eprintln!("roe: {err}");
             return 2;
         }
     }

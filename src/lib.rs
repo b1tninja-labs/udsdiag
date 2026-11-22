@@ -30,6 +30,7 @@ pub mod mode06;
 pub mod nrc;
 pub mod periodic;
 pub mod readdtc;
+pub mod responseonevent;
 pub mod routine;
 pub mod securedtransmission;
 pub mod security;
