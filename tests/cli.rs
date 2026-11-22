@@ -187,6 +187,18 @@ fn accesstiming_command_lists_and_builds() {
 }
 
 #[test]
+fn dddi_command_lists_and_clears() {
+    let (out, code) = run(&["dddi"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("defineByIdentifier"));
+    assert!(out.contains("clearDynamicallyDefinedDataIdentifier"));
+    let (out, _) = run(&["dddi", "clear", "F301"]);
+    assert!(out.contains("2c03f301"));
+    let (out, _) = run(&["dddi", "clear"]);
+    assert!(out.contains("2c03"));
+}
+
+#[test]
 fn decode_and_gmlan_render() {
     let (out, code) = run(&["decode", "7F2231"]);
     assert_eq!(code, 0);

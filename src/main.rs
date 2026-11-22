@@ -13,8 +13,8 @@ use udskit::gm;
 #[cfg(feature = "gm")]
 use udskit::vendor::VendorProfile;
 use udskit::{
-    accesstiming, commcontrol, did, dtc, dtcsetting, ecureset, gmlan, memory, message, nrc,
-    periodic, readdtc, services, session, testerpresent,
+    accesstiming, commcontrol, did, dtc, dtcsetting, dynamicdid, ecureset, gmlan, memory, message,
+    nrc, periodic, readdtc, services, session, testerpresent,
 };
 
 fn main() -> ExitCode {
@@ -33,6 +33,7 @@ fn main() -> ExitCode {
         "commcontrol" => cmd_commcontrol(rest),
         "accesstiming" => cmd_accesstiming(rest),
         "dtcsetting" => cmd_dtcsetting(rest),
+        "dddi" => cmd_dddi(rest),
         "rdbi" => cmd_rdbi(rest),
         "wdbi" => cmd_wdbi(rest),
         "cleardtc" => cmd_cleardtc(rest),
@@ -64,7 +65,7 @@ fn main() -> ExitCode {
     ExitCode::from(code)
 }
 
-const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|accesstiming|dtcsetting|rdbi|wdbi|rsdbi|periodic|cleardtc|readdtc|readmem|writemem|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
+const USAGE: &str = "usage: udskit <services|nrc|session|ecureset|testerpresent|commcontrol|accesstiming|dtcsetting|dddi|rdbi|wdbi|rsdbi|periodic|cleardtc|readdtc|readmem|writemem|did|dtc|status|routines|iocontrol|security|mode06|decode|gmlan> [arg]";
 
 fn parse_u8_hex(s: &str) -> Option<u8> {
     u8::from_str_radix(s.trim_start_matches("0x").trim_start_matches("0X"), 16).ok()
@@ -562,6 +563,43 @@ fn cmd_accesstiming(rest: &[String]) -> u8 {
         }
     }
     0
+}
+
+fn cmd_dddi(rest: &[String]) -> u8 {
+    match rest.first().map(String::as_str) {
+        None => {
+            for entry in dynamicdid::definition_types() {
+                println!(
+                    "{:#04x}  {:<6}  {}",
+                    entry.value, entry.mnemonic, entry.name
+                );
+            }
+            0
+        }
+        Some("clear") => {
+            let dddi = if let Some(s) = rest.get(1) {
+                let Some(value) = parse_u16_hex(s) else {
+                    eprintln!("dddi: expected a hex dynamicallyDefinedDataIdentifier");
+                    return 2;
+                };
+                Some(value)
+            } else {
+                None
+            };
+            println!(
+                "clearDynamicallyDefinedDataIdentifier  -> {}",
+                hex_string(&dynamicdid::build_clear(dddi))
+            );
+            0
+        }
+        Some(_) => {
+            eprintln!(
+                "dddi: from the CLI only 'dddi' (list) and 'dddi clear [DID]' are available; the \
+                 define builders are library functions"
+            );
+            2
+        }
+    }
 }
 
 fn cmd_status(rest: &[String]) -> u8 {
