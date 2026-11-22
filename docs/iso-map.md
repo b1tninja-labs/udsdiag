@@ -11,7 +11,7 @@ and are therefore marked unverified in the code.
 |---|---|---|---|
 | Negative-response-code values and names (0x10 generalReject … 0x78 responsePending) | `src/nrc.rs` | ISO 14229-1:2013 | Annex A (normative), Table A.1 — `iso:14229-1@2013§15.4.4` (Table A.1 body) |
 | Positive response = request SID + 0x40; negative response = `0x7F <SID> <NRC>` | `src/services.rs`, `src/message.rs` | ISO 14229-1:2013 | 7.2, 7.5.6 |
-| Service-identifier catalog membership (which SIDs the 2013 edition defines) | `src/services.rs` | ISO 14229-1:2013 | §9.1 Table 22 (Diag. & Comm. Mgmt list) and Contents §9–§14. Correction: Authentication (0x29) is a **2020** service, not 2013, and was removed; RequestFileTransfer (0x38, §14.6) was added. |
+| Service-identifier catalog membership (which SIDs the 2013 edition defines) | `src/services.rs` | ISO 14229-1:2013 | §9.1 Table 22 (Diag. & Comm. Mgmt list) and Contents §9–§14. Correction: Authentication (0x29) is absent from the 2013 Table 22 — it is retagged `ISO 14229-1:2020` (see the unverified table); RequestFileTransfer (0x38, §14.6) was added. |
 | RoutineControl sub-functions: 0x01 startRoutine (M), 0x02 stopRoutine (U), 0x03 requestRoutineResults | `src/routine.rs` | ISO 14229-1:2013 | 13.2; request example tables confirm the `0x31 / 0x01-0x03` bytes |
 | SecurityAccess pairing: requestSeed odd ↔ sendKey = requestSeed + 1; NRC 0x35 invalidKey | `src/security.rs` | ISO 14229-1:2013 | 9.4.2; "requestSeed = 0x01 … sendKey = 0x02" |
 | requestOutOfRange 0x31, securityAccessDenied 0x33, invalidKey 0x35 definitions | `src/nrc.rs` | ISO 14229-1:2013 | Table A.1 (read in full) |
@@ -33,6 +33,7 @@ corroborated against the GMG3 firmware dispatch tree and the app's captured fram
 | Two-byte DTC packing: top-2 bits of byte 1 → P/C/B/U; nibbles → digits | `src/dtc.rs` (`encode` / `decode`) | SAE J2012 / ISO 15031-6 | **Unverified.** Implements the conventional format; the module docs and `encode`/`decode` say so. Neither J2012 nor ISO 15031-6 is loaded (`iso_docs` lists 15031-3 only). |
 | GMLAN `+0x400` response / `+0x300` filter 11-bit addressing | `src/gmlan.rs` | GM GMW3110 (GMLAN) | GM-proprietary convention, taken from the app capture in `docs/sources.md`, not a public standard. The OBD-II `0x7E0+8` physical response offset is ISO 15765-4. |
 | GMLAN service aliases ($1A, $3B, $AE, …) | `src/services.rs` | GM GMW3110 (GMLAN) | GM-specific; sourced from the firmware/app assessment, flagged `Standard::Gmlan` in the catalog. |
+| Authentication (0x29) belongs to ISO 14229-1:**2020** | `src/services.rs` (`Standard::Iso14229Later`) | ISO 14229-1:2020 | **Unverified.** Confirmed only that 0x29 is *absent* from the 2013 Table 22; the 2020 edition is not loaded in `primarysource` (`iso_docs` lists `14229-1@2013` only), so the 2020 attribution rests on general knowledge, not a loaded clause. Flagged `Iso14229Later` and noted in the code. Load the 2020 edition to confirm and cite. |
 
 If any of these documents is later fetched into `primarysource`, read it and replace the
 "unverified" note with a clause citation here.

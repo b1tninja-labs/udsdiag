@@ -20,8 +20,12 @@ pub const NEGATIVE_RESPONSE_SID: u8 = 0x7F;
 /// Which standard defines a service.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Standard {
-    /// Defined in ISO 14229-1:2013.
+    /// Defined in ISO 14229-1:2013 (the edition this crate models and `primarysource` carries).
     Iso14229,
+    /// Defined in a later ISO 14229-1 edition (2020), not the 2013 one: a standard UDS service,
+    /// not a vendor extension. The 2020 edition is not loaded in `primarysource`, so the edition
+    /// attribution is unverified against a primary source (see `docs/iso-map.md`).
+    Iso14229Later,
     /// A GM GMLAN-specific service (see `docs/sources.md`).
     Gmlan,
 }
@@ -31,6 +35,7 @@ impl Standard {
     pub const fn label(self) -> &'static str {
         match self {
             Standard::Iso14229 => "ISO 14229-1:2013",
+            Standard::Iso14229Later => "ISO 14229-1:2020",
             Standard::Gmlan => "GMLAN",
         }
     }
@@ -80,6 +85,17 @@ const SERVICES: &[Service] = &[
     iso(0x11, "ECUReset", "ER"),
     iso(0x27, "SecurityAccess", "SA"),
     iso(0x28, "CommunicationControl", "CC"),
+    // Authentication (0x29) is a standard UDS service, but from ISO 14229-1:2020, NOT the 2013
+    // edition (absent from the 2013 Table 22 service list, confirmed via primarysource). It is not
+    // a GM/GMLAN vendor extension — GM's own authentication is the ADIT ALD over SecurityAccess
+    // (0x27), modelled in `security.rs`. The 2020 edition is not loaded in primarysource, so the
+    // 2020 attribution is unverified; see docs/iso-map.md.
+    Service {
+        sid: 0x29,
+        name: "Authentication",
+        mnemonic: "AUTH",
+        standard: Standard::Iso14229Later,
+    },
     iso(0x3E, "TesterPresent", "TP"),
     iso(0x83, "AccessTimingParameter", "ATP"),
     iso(0x84, "SecuredDataTransmission", "SDT"),
@@ -169,8 +185,11 @@ mod tests {
             assert!(get(sid).is_some(), "missing {sid:#x}");
         }
         assert_eq!(get(0x31).unwrap().name, "RoutineControl");
-        // Authentication (0x29) is an ISO 14229-1:2020 service, not in the 2013 edition (Table 22).
-        assert!(get(0x29).is_none());
+        // Authentication (0x29) is carried, but tagged as the 2020 edition, not 2013 (Table 22).
+        let auth = get(0x29).expect("0x29 catalogued");
+        assert_eq!(auth.name, "Authentication");
+        assert_eq!(auth.standard, Standard::Iso14229Later);
+        assert_ne!(auth.standard, Standard::Iso14229);
         // RequestFileTransfer (0x38) is a 2013 upload/download service (contents 14.6).
         assert_eq!(get(0x38).unwrap().name, "RequestFileTransfer");
     }

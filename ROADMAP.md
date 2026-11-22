@@ -18,19 +18,20 @@ the Mode $06 PDF parser is `mode06kit`. This crate imports none of them. The GM-
 DID *field semantics* remain catalog-only (they need an owner-authorised vehicle). SecurityAccess
 key derivation is out of scope by design: `src/security.rs` models the exchange shape only.
 
-Other ISO 14229-1:2013 services are catalogued by SID but deliberately **not modelled** (a
-reference + codec library, not a full UDS stack): ReadMemoryByAddress (0x23, §10.3),
-ReadScalingDataByIdentifier (0x24, §10.4), ReadDataByPeriodicIdentifier (0x2A, §10.5),
-DynamicallyDefineDataIdentifier (0x2C, §10.6), WriteMemoryByAddress (0x3D, §10.8),
-AccessTimingParameter (0x83, §9.7), SecuredDataTransmission (0x84, §9.8), ResponseOnEvent
-(0x86, §9.10), LinkControl (0x87, §9.11), and the Upload/Download functional unit
-(0x34–0x38, §14). **Catalog corrections against `primarysource` (ISO 14229-1:2013 Table 22 / §14.6):**
-Authentication (0x29) is an ISO 14229-1:**2020** service and was removed from the 2013 catalog;
-RequestFileTransfer (0x38) is a 2013 service and was added.
+**The goal is to model every ISO 14229-1 service's application-message layer** — its sub-function
+and parameter tables and its request/response framing, sans I/O. If the standard defines a service,
+it belongs in the kit. The services not yet modelled are tracked as `[open]` rows below, each
+anchored to its clause; the non-goals above are only the *sibling repos* and the SecurityAccess key
+boundary, not anything ISO 14229-1 itself defines.
 
-Every `[ok]` row below names a Rust test that fails if the behaviour regresses. The `[open]` rows at
-the end are UDS services ISO 14229-1:2013 defines that this crate catalogs by SID but does not yet
-model — their sub-function/parameter tables and request builders — each anchored to its clause.
+**Catalog corrections against `primarysource`:** Authentication (0x29) is a standard UDS service from
+the **2020** edition, not 2013 — it is absent from the 2013 Table 22 service list (confirmed via
+`primarysource`; the 2020 edition is not loaded there, so the 2020 attribution is unverified). It is
+**retagged** `ISO 14229-1:2020` in the catalog, not removed. RequestFileTransfer (0x38, §14.6) is a
+2013 service and was added.
+
+Every `[ok]` row below names a Rust test that fails if the behaviour regresses. The `[open]` rows are
+ISO 14229-1 services this crate catalogs by SID but does not yet model, each anchored to its clause.
 
 | Status | Obligation | Anchor | Test |
 |---|---|---|---|
@@ -70,3 +71,15 @@ model — their sub-function/parameter tables and request builders — each anch
 | [open] | The `suppressPosRspMsgIndicationBit` (bit 7 of a sub-function byte): set on encode, strip on decode, for sub-function services | ISO 14229-1:2013 §8.2 (Table 34 note) | — |
 | [open] | ReadDataByIdentifier (0x22): a typed request builder for one or more DIDs (the `0x62` response parse already exists) | ISO 14229-1:2013 §10.2 | — |
 | [open] | WriteDataByIdentifier (0x2E): a request builder over the write-DID catalog | ISO 14229-1:2013 §10.7 | — |
+| [open] | ClearDiagnosticInformation (0x14): a request builder over a groupOfDTC | ISO 14229-1:2013 §11.2; Annex D.1 | — |
+| [open] | ReadMemoryByAddress (0x23): request builder with the addressAndLengthFormatIdentifier | ISO 14229-1:2013 §10.3 (Annex H) | — |
+| [open] | ReadScalingDataByIdentifier (0x24): request builder and the scalingByte model | ISO 14229-1:2013 §10.4; Annex C.2/C.3 | — |
+| [open] | ReadDataByPeriodicIdentifier (0x2A): transmissionMode + periodic DID request builder | ISO 14229-1:2013 §10.5; Annex C.4 | — |
+| [open] | DynamicallyDefineDataIdentifier (0x2C): defineByIdentifier / defineByMemoryAddress / clear builders | ISO 14229-1:2013 §10.6 | — |
+| [open] | WriteMemoryByAddress (0x3D): request builder with the addressAndLengthFormatIdentifier | ISO 14229-1:2013 §10.8 (Annex H) | — |
+| [open] | AccessTimingParameter (0x83): the four timing-parameter access modes and a builder | ISO 14229-1:2013 §9.7 | — |
+| [open] | SecuredDataTransmission (0x84): the secured-message envelope framing | ISO 14229-1:2013 §9.8 | — |
+| [open] | ResponseOnEvent (0x86): eventType catalog and the setup request framing | ISO 14229-1:2013 §9.10; Annex B.2 | — |
+| [open] | LinkControl (0x87): linkControlType + linkControlModeIdentifier catalog and a builder | ISO 14229-1:2013 §9.11; Annex B.3 | — |
+| [open] | Upload/Download unit (0x34–0x38): RequestDownload / RequestUpload / TransferData / RequestTransferExit / RequestFileTransfer request framing (sans I/O; no flashing — the flow is `spskit`) | ISO 14229-1:2013 §14; Annex G | — |
+| [open] | Authentication (0x29): the sub-functions and request builders | ISO 14229-1:**2020** (edition not in `primarysource`; model when loaded) | — |
