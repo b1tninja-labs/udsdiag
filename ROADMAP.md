@@ -48,3 +48,4 @@ Every `[ok]` row below names a Rust test that fails if the behaviour regresses.
 | [ok] | `gmlan::response_id` / `gmlan::filter_id` apply `+0x400` / `+0x300` | GMLAN assessment (docs/sources.md) | `src/gmlan.rs` `response_and_filter_offsets` (and reject an overflow of 11 bits) |
 | [ok] | `gmlan::obd_response_id` applies the ISO 15765-4 `+8` physical offset | ISO 15765-4 | `src/gmlan.rs` `obd_physical_response_offset` |
 | [ok] | The public API builds a request, decodes its response, and decodes a status byte end to end | — | `tests/smoke.rs` `a_read_did_round_trips_through_the_codec`, `the_status_decoder_is_public`, `security_access_exposes_no_key_derivation` |
+| [ok] | The read-only CLI prints each catalog, decodes a PDU and status byte from hex, and exits non-zero on bad usage | — | `tests/cli.rs` `catalog_commands_print_expected`, `decode_and_gmlan_render`, `bad_usage_exits_nonzero` (drives the built binary) |
